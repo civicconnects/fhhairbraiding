@@ -8,6 +8,7 @@ export interface Env {
     STRIPE_WEBHOOK_SECRET: string;
     FRONTEND_URL: string;
     BRAIDS_BUCKET: R2Bucket;
+    ADMIN_PASSWORD: string;
 }
 
 export default {
@@ -43,8 +44,9 @@ export default {
         if (url.pathname === "/api/admin/upload" && request.method === "POST") {
             const adminKey = request.headers.get("X-Admin-Key");
 
-            // We check the admin password provided by the frontend
-            if (adminKey !== "your-secret-password") {
+            // We check the admin password provided by the frontend against env
+            const secretPassword = env.ADMIN_PASSWORD || "your-secret-password";
+            if (!adminKey || adminKey !== secretPassword) {
                 return new Response(JSON.stringify({ error: "Unauthorized" }), {
                     status: 401,
                     headers: corsHeaders
@@ -53,6 +55,7 @@ export default {
 
             const formData = await request.formData();
             const file = formData.get("file") as File;
+            const serviceId = formData.get("serviceId");
 
             if (!file) {
                 return new Response(JSON.stringify({ error: "No file provided" }), {
@@ -65,7 +68,16 @@ export default {
 
             await env.BRAIDS_BUCKET.put(fileName, file.stream());
 
-            return new Response(JSON.stringify({ url: `https://pub-your-id.r2.dev/${fileName}` }), {
+            const newImageUrl = `https://pub-your-id.r2.dev/${fileName}`;
+
+            // Link image to the selected service in D1
+            if (serviceId) {
+                await env.DB.prepare(
+                    "UPDATE services SET image_url = ? WHERE id = ?"
+                ).bind(newImageUrl, serviceId).run();
+            }
+
+            return new Response(JSON.stringify({ url: newImageUrl }), {
                 headers: { ...corsHeaders, "Content-Type": "application/json" }
             });
         }
