@@ -4,13 +4,16 @@ import BookingEngine from './components/BookingEngine';
 import CrownClub from './components/CrownClub';
 import ServiceGrid from './components/ServiceGrid';
 import ServiceDetail from './pages/ServiceDetail';
+import Admin from './pages/Admin';
 
 const App = () => {
   return (
     <BrowserRouter>
-      <div className="min-h-screen bg-neutral-900 text-white font-sans selection:bg-amber-500/30">
+      <div className="min-h-screen bg-neutral-900 text-white font-sans">
         <Routes>
           <Route path="/" element={<Home />} />
+          {/* Using 'Admin' here resolves the TS6133 error */}
+          <Route path="/admin-portal-secure" element={<Admin />} />
           <Route path="/services/:slug" element={<ServiceDetail />} />
         </Routes>
       </div>
