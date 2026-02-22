@@ -17,22 +17,21 @@ export default {
     ): Promise<Response> {
         const url = new URL(request.url);
         const origin = request.headers.get("Origin") || "*";
+        const corsHeaders = {
+            "Access-Control-Allow-Origin": origin,
+            "Content-Type": "application/json",
+        };
 
         // CORS Handling
         if (request.method === "OPTIONS") {
             return new Response(null, {
                 headers: {
-                    "Access-Control-Allow-Origin": origin,
+                    ...corsHeaders,
                     "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
                     "Access-Control-Allow-Headers": "Content-Type, stripe-signature",
                 },
             });
         }
-
-        const corsHeaders = {
-            "Access-Control-Allow-Origin": origin,
-            "Content-Type": "application/json",
-        };
 
         const stripe = new Stripe(env.STRIPE_SECRET_KEY || 'sk_test_dummy', {
             apiVersion: '2026-01-28.clover',

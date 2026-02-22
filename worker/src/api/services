@@ -1,0 +1,6 @@
+if (url.pathname === "/api/services") {
+  const { results } = await env.DB.prepare("SELECT * FROM services").all();
+  return new Response(JSON.stringify(results), {
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
