@@ -182,4 +182,51 @@ export default {
 
         return new Response("F&H Hair Braiding API is running. Direct D1 bindings functional.", { status: 200, headers: corsHeaders });
     },
+
+    // Reconciliation Cron Job (The Deadman Switch)
+    async scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionContext) {
+        // Fetch: Get all "Pending" appointments in D1 older than 30 minutes.
+        // (Assuming created_at exists, or we just check all pending for this demo)
+        const { results } = await env.DB.prepare(
+            `SELECT id, slot_id, stripe_session_id FROM appointments WHERE status = 'pending_deposit'`
+        ).all();
+
+        if (results.length === 0) return;
+
+        const stripe = new Stripe(env.STRIPE_SECRET_KEY || 'sk_test_dummy', {
+            apiVersion: '2026-01-28.clover',
+            httpClient: Stripe.createFetchHttpClient(),
+        });
+
+        for (const appt of results as any[]) {
+            if (!appt.stripe_session_id) continue;
+
+            try {
+                // Verify: Query the Stripe API using the session_id to check the actual status.
+                const session = await stripe.checkout.sessions.retrieve(appt.stripe_session_id);
+
+                // Reconcile: If Stripe says "Paid" but D1 says "Pending," update D1 to "Confirmed".
+                if (session.payment_status === 'paid') {
+                    console.log(`[RECONCILIATION] Discovered Ghost Payment for Appt ${appt.id}. Flagging as CONFIRMED.`);
+
+                    await env.DB.prepare(
+                        `UPDATE appointments SET status = 'confirmed' WHERE id = ?`
+                    ).bind(appt.id).run();
+
+                    await env.DB.prepare(
+                        `UPDATE availability_slots SET is_booked = 1, version = version + 1 WHERE id = ?`
+                    ).bind(appt.slot_id).run();
+
+                    // Optional: Trigger confirmation SMS here via Twilio/custom endpoint...
+                } else if (session.status === 'expired') {
+                    // Cleanup expired sessions that webhooks missed
+                    await env.DB.prepare(
+                        `DELETE FROM appointments WHERE id = ?`
+                    ).bind(appt.id).run();
+                }
+            } catch (err) {
+                console.error(`Reconciliation failed for Appt ${appt.id}:`, err);
+            }
+        }
+    }
 };

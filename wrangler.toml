@@ -14,3 +14,6 @@ database_id = "local-dev-id"
 STRIPE_SECRET_KEY = "sk_test_..."
 STRIPE_WEBHOOK_SECRET = "whsec_..."
 FRONTEND_URL = "http://localhost:5173"
+
+[triggers]
+crons = ["*/30 * * * *"] # Run every 30 minutes for Reconciliations
