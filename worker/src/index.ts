@@ -34,31 +34,39 @@ export default {
             "Content-Type": "application/json",
         };
 
-        // Initialize Stripe using Fetch HTTP Client for Cloudflare Workers
         const stripe = new Stripe(env.STRIPE_SECRET_KEY || 'sk_test_dummy', {
             apiVersion: '2026-01-28.clover',
             httpClient: Stripe.createFetchHttpClient(),
         });
 
         // 1. Init Booking & Checkout Session
-        if (url.pathname === "/api/bookings/init" && request.method === "POST") {
+        // Note: Changing endpoint to /api/book to match Master instructions if preferred, but existing code used /api/bookings/init
+        if ((url.pathname === "/api/bookings/init" || url.pathname === "/api/book") && request.method === "POST") {
             try {
-                const { slotId } = await request.json() as { slotId: string };
+                // To support stress test script:
+                const body = await request.json() as any;
+                const slotId = body.slotId;
                 if (!slotId) return new Response("Missing slotId", { status: 400, headers: corsHeaders });
 
-                const userId = 'user_demo_123';
-                const serviceId = 'srv_1'; // Box Braids
-                const bookingId = `bk_${crypto.randomUUID()}`;
+                const customerName = body.customerName || `Demo Customer ${body.userId || ''}`;
+                const customerEmail = body.customerEmail || 'demo@example.com';
+                const customerPhone = body.customerPhone || '555-0199';
 
-                // Create PENDING booking in D1. Strict UNIQUE(slot_id) prevents race conditions.
+                // We try to insert into appointments. 
+                // The UNIQUE(slot_id) constraint in the DB will automatically throw an error if another transaction already grabbed it.
+                // This guarantees atomic locking!
+                let appointmentId: number;
                 try {
-                    await env.DB.prepare(
-                        `INSERT INTO bookings (id, user_id, service_id, slot_id, status) VALUES (?, ?, ?, ?, 'PENDING')`
-                    ).bind(bookingId, userId, serviceId, slotId).run();
+                    const result = await env.DB.prepare(
+                        `INSERT INTO appointments (slot_id, customer_name, customer_email, customer_phone, status) VALUES (?, ?, ?, ?, 'pending_deposit') RETURNING id`
+                    ).bind(slotId, customerName, customerEmail, customerPhone).first();
+                    appointmentId = result?.id as number;
                 } catch (dbError: any) {
-                    // If a unique constraint fails, it means the slot is taken.
+                    // Unique constraint failed = slot already taken by another request concurrently
                     return new Response(JSON.stringify({ error: "Slot unavailable" }), { status: 409, headers: corsHeaders });
                 }
+
+                const bookingId = `appt_${appointmentId}`;
 
                 // Create Stripe Checkout Session for $25 Deposit
                 const session = await stripe.checkout.sessions.create({
@@ -68,7 +76,7 @@ export default {
                             currency: 'usd',
                             product_data: {
                                 name: 'F&H Hair Braiding Deposit',
-                                description: `Slot: ${slotId}`,
+                                description: `Slot ID: ${slotId}`,
                             },
                             unit_amount: 2500, // $25.00
                         },
@@ -77,16 +85,20 @@ export default {
                     mode: 'payment',
                     success_url: `${env.FRONTEND_URL || 'http://localhost:5173'}/?success=true&session_id={CHECKOUT_SESSION_ID}`,
                     cancel_url: `${env.FRONTEND_URL || 'http://localhost:5173'}/?canceled=true`,
-                    client_reference_id: bookingId,
+                    client_reference_id: appointmentId.toString(),
                     metadata: {
-                        bookingId: bookingId,
-                        slotId: slotId,
-                        userId: userId
+                        appointmentId: appointmentId.toString(),
+                        slotId: slotId.toString()
                     },
                     expires_at: Math.floor(Date.now() / 1000) + (30 * 60) // Expires in 30 mins
                 }, {
                     idempotencyKey: bookingId
                 });
+
+                // Update appointment with stripe_session_id
+                await env.DB.prepare(
+                    `UPDATE appointments SET stripe_session_id = ? WHERE id = ?`
+                ).bind(session.id, appointmentId).run();
 
                 return new Response(JSON.stringify({ checkoutUrl: session.url }), { status: 200, headers: corsHeaders });
             } catch (err: any) {
@@ -117,32 +129,34 @@ export default {
                 switch (event.type) {
                     case 'checkout.session.completed': {
                         const session = event.data.object as Stripe.Checkout.Session;
-                        const bookingId = session.metadata?.bookingId;
-                        const pi = session.payment_intent as string;
+                        const appointmentId = session.metadata?.appointmentId;
+                        const slotId = session.metadata?.slotId;
 
-                        if (bookingId) {
+                        // We use a BEGIN TRANSACTION equivalent by running multiple statements if needed,
+                        // or just rely on sequential execution for the webhook
+                        if (appointmentId && slotId) {
                             await env.DB.prepare(
-                                `UPDATE bookings SET status = 'CONFIRMED', stripe_payment_intent_id = ? WHERE id = ?`
-                            ).bind(pi, bookingId).run();
+                                `UPDATE appointments SET status = 'confirmed' WHERE id = ?`
+                            ).bind(appointmentId).run();
 
-                            const userId = session.metadata?.userId;
-                            if (userId) {
-                                // Upsert user and increment loyalty points
-                                await env.DB.prepare(
-                                    `INSERT INTO users (id, email, name, loyalty_points) VALUES (?, ?, ?, 1) 
-                   ON CONFLICT(id) DO UPDATE SET loyalty_points = loyalty_points + 1`
-                                ).bind(userId, session.customer_details?.email || 'demo@example.com', session.customer_details?.name || 'Demo User').run();
-                            }
+                            // Optimistically lock/mark the slot as fully booked
+                            // Also increment version
+                            await env.DB.prepare(
+                                `UPDATE availability_slots SET is_booked = 1, version = version + 1 WHERE id = ?`
+                            ).bind(slotId).run();
                         }
                         break;
                     }
                     case 'checkout.session.expired': {
                         const session = event.data.object as Stripe.Checkout.Session;
-                        const bookingId = session.metadata?.bookingId;
-                        if (bookingId) {
+                        const appointmentId = session.metadata?.appointmentId;
+                        const slotId = session.metadata?.slotId;
+                        if (appointmentId) {
+                            // Free up the slot by deleting the appointment or marking as cancelled
+                            // We delete it so the unique slot_id constraint is lifted
                             await env.DB.prepare(
-                                `UPDATE bookings SET status = 'CANCELLED' WHERE id = ?`
-                            ).bind(bookingId).run();
+                                `DELETE FROM appointments WHERE id = ?`
+                            ).bind(appointmentId).run();
                         }
                         break;
                     }
@@ -159,7 +173,7 @@ export default {
             const slotId = parts[parts.length - 1];
 
             const { results } = await env.DB.prepare(
-                `SELECT status FROM bookings WHERE slot_id = ? AND status IN ('PENDING', 'CONFIRMED')`
+                `SELECT status FROM appointments WHERE slot_id = ? AND status IN ('pending_deposit', 'confirmed')`
             ).bind(slotId).all();
 
             const status = results.length > 0 ? "BOOKED" : "AVAILABLE";
