@@ -19,12 +19,10 @@ const App = () => {
 };
 
 const Home = () => (
-  <main className="flex min-h-screen flex-col items-center">
+  <main className="flex min-h-screen flex-col items-center bg-neutral-900">
     <Hero />
+    <ServiceGrid /> {/* This fills the "blank" space with your D1 data */}
     <BookingEngine />
-    <section className="w-full max-w-7xl mx-auto px-6 py-12">
-      <ServiceGrid />
-    </section>
     <section className="w-full max-w-4xl mx-auto px-6 py-12">
       <CrownClub />
     </section>

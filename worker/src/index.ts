@@ -39,13 +39,32 @@ export default {
             httpClient: Stripe.createFetchHttpClient(),
         });
 
-        // Add an upload route to your Worker
-        if (url.pathname === "/api/upload" && request.method === "POST") {
+        // Admin Upload Route (Requires Password)
+        if (url.pathname === "/api/admin/upload" && request.method === "POST") {
+            const adminKey = request.headers.get("X-Admin-Key");
+
+            // We check the admin password provided by the frontend
+            if (adminKey !== "your-secret-password") {
+                return new Response(JSON.stringify({ error: "Unauthorized" }), {
+                    status: 401,
+                    headers: corsHeaders
+                });
+            }
+
             const formData = await request.formData();
             const file = formData.get("file") as File;
+
+            if (!file) {
+                return new Response(JSON.stringify({ error: "No file provided" }), {
+                    status: 400,
+                    headers: corsHeaders
+                });
+            }
+
             const fileName = `${Date.now()}-${file.name}`;
 
             await env.BRAIDS_BUCKET.put(fileName, file.stream());
+
             return new Response(JSON.stringify({ url: `https://pub-your-id.r2.dev/${fileName}` }), {
                 headers: { ...corsHeaders, "Content-Type": "application/json" }
             });
