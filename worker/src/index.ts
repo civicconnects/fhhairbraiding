@@ -7,6 +7,7 @@ export interface Env {
     STRIPE_SECRET_KEY: string;
     STRIPE_WEBHOOK_SECRET: string;
     FRONTEND_URL: string;
+    BRAIDS_BUCKET: R2Bucket;
 }
 
 export default {
@@ -37,6 +38,18 @@ export default {
             apiVersion: '2026-01-28.clover',
             httpClient: Stripe.createFetchHttpClient(),
         });
+
+        // Add an upload route to your Worker
+        if (url.pathname === "/api/upload" && request.method === "POST") {
+            const formData = await request.formData();
+            const file = formData.get("file") as File;
+            const fileName = `${Date.now()}-${file.name}`;
+
+            await env.BRAIDS_BUCKET.put(fileName, file.stream());
+            return new Response(JSON.stringify({ url: `https://pub-your-id.r2.dev/${fileName}` }), {
+                headers: { ...corsHeaders, "Content-Type": "application/json" }
+            });
+        }
 
         // 1. Init Booking & Checkout Session
         // Note: Changing endpoint to /api/book to match Master instructions if preferred, but existing code used /api/bookings/init

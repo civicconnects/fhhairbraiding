@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Hero from './components/Hero';
 import BookingEngine from './components/BookingEngine';
 import CrownClub from './components/CrownClub';
+import ServiceGrid from './components/ServiceGrid';
 import ServiceDetail from './pages/ServiceDetail';
 
 const App = () => {
@@ -21,6 +22,9 @@ const Home = () => (
   <main className="flex min-h-screen flex-col items-center">
     <Hero />
     <BookingEngine />
+    <section className="w-full max-w-7xl mx-auto px-6 py-12">
+      <ServiceGrid />
+    </section>
     <section className="w-full max-w-4xl mx-auto px-6 py-12">
       <CrownClub />
     </section>
