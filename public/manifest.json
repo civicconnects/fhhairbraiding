@@ -1,0 +1,21 @@
+{
+    "name": "F&H Hair Braiding",
+    "short_name": "F&H Braids",
+    "description": "Radcliff’s #1 Braiding Destination: Get the Crown You Deserve. Professional hair braiding in Fort Knox.",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#0a0a0a",
+    "theme_color": "#d97706",
+    "icons": [
+        {
+            "src": "/icon-192.png",
+            "type": "image/png",
+            "sizes": "192x192"
+        },
+        {
+            "src": "/icon-512.png",
+            "type": "image/png",
+            "sizes": "512x512"
+        }
+    ]
+}
