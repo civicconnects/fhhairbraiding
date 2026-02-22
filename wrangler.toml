@@ -7,7 +7,7 @@ compatibility_flags = ["nodejs_compat"]
 [[d1_databases]]
 binding = "DB"
 database_name = "fh-bookings-db"
-database_id = "local-dev-id"
+database_id = "22c8c657-a00e-4df4-a8e0-83f0c9c6d8b3"
 
 # Variables for Stripe
 [vars]
