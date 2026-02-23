@@ -4,7 +4,7 @@
         "title": "Box Braids",
         "slug": "box-braids",
         "description": "Focus on parting and neatness. Our signature box braids are known for razor-sharp parts and consistent density, designed to last 6-8 weeks while protecting your natural hair.",
-        "imagePath": "/images/box-braids-optimized.jpg",
+        "imagePath": "/images/box-braids.png",
         "status": "published"
     },
     {
@@ -12,7 +12,7 @@
         "title": "Bohemian Braids",
         "slug": "bohemian-braids",
         "description": "Focus on the Signature Crowns look. We blend high-quality extensions with goddess curls to create a voluminous, ethereal look tailored to your face shape.",
-        "imagePath": "/images/boho-braids-optimized.jpg",
+        "imagePath": "/images/boho-braids.png",
         "status": "published"
     },
     {
@@ -20,7 +20,7 @@
         "title": "Knotless Braids",
         "slug": "knotless-braids",
         "description": "Focus on scalp comfort and the natural look. Our knotless technique starts with your natural hair, ensuring zero tension on the follicle—perfect for those prioritizing hair growth and comfort.",
-        "imagePath": "/images/knotless-optimized.jpg",
+        "imagePath": "/images/knotless.png",
         "status": "published"
     },
     {
@@ -28,7 +28,7 @@
         "title": "Passion Twists",
         "slug": "passion-twists",
         "description": "Soft, bouncy, and lightweight Passion Twists designed to protect your natural crown.",
-        "imagePath": "/images/passion-twists-optimized.jpg",
+        "imagePath": "/images/passion-twists.png",
         "status": "published"
     },
     {
@@ -36,7 +36,7 @@
         "title": "Cornrows",
         "slug": "cornrows",
         "description": "Focus on symmetry. From simple straight backs to intricate patterns, our cornrow services emphasize symmetry and scalp health.",
-        "imagePath": "/images/cornrows-optimized.jpg",
+        "imagePath": "/images/cornrows.png",
         "status": "published"
     },
     {
@@ -44,7 +44,7 @@
         "title": "Fulani Braids",
         "slug": "fulani-braids",
         "description": "Elegant Fulani-inspired styles mixing cornrows and box braids for a striking cultural statement.",
-        "imagePath": "/images/fulani-optimized.jpg",
+        "imagePath": "/images/fulani.png",
         "status": "published"
     },
     {
@@ -52,7 +52,7 @@
         "title": "Lemonade Braids",
         "slug": "lemonade-braids",
         "description": "Signature side-swept Lemonade braids executed with structural perfection.",
-        "imagePath": "/images/lemonade-optimized.jpg",
+        "imagePath": "/images/lemonade.png",
         "status": "published"
     },
     {
@@ -60,7 +60,7 @@
         "title": "Faux Locs",
         "slug": "faux-locs",
         "description": "Stunning, realistic Faux Locs providing a long-term protective style with a natural finish.",
-        "imagePath": "/images/faux-locs-optimized.jpg",
+        "imagePath": "/images/faux-locs.png",
         "status": "published"
     },
     {
@@ -68,7 +68,7 @@
         "title": "Goddess Braids",
         "slug": "goddess-braids",
         "description": "Thick, regal Goddess braids combined with curly leave-outs for unparalleled volume.",
-        "imagePath": "/images/goddess-optimized.jpg",
+        "imagePath": "/images/goddess.png",
         "status": "published"
     },
     {
@@ -76,7 +76,7 @@
         "title": "Senegalese Twists",
         "slug": "senegalese-twists",
         "description": "Smooth and elegant Senegalese Twists crafted using the two-strand method for a polished look.",
-        "imagePath": "/images/senegalese-optimized.jpg",
+        "imagePath": "/images/senegalese.png",
         "status": "published"
     },
     {
@@ -84,7 +84,7 @@
         "title": "Tribal Braids",
         "slug": "tribal-braids",
         "description": "Intricate tribal patterns demonstrating advanced geometric parting and styling.",
-        "imagePath": "/images/tribal-optimized.jpg",
+        "imagePath": "/images/tribal.png",
         "status": "published"
     },
     {
@@ -92,7 +92,7 @@
         "title": "Crochet Braids",
         "slug": "crochet-braids",
         "description": "Fast and safe Crochet installations offering endless style variations with zero tension.",
-        "imagePath": "/images/crochet-optimized.jpg",
+        "imagePath": "/images/crochet.png",
         "status": "published"
     },
     {
@@ -100,7 +100,7 @@
         "title": "Micro Braids",
         "slug": "micro-braids",
         "description": "Delicate, tiny micro braids offering the flexibility of freely moving hair with the protection of braids.",
-        "imagePath": "/images/micro-optimized.jpg",
+        "imagePath": "/images/micro.png",
         "status": "published"
     },
     {
@@ -108,7 +108,7 @@
         "title": "Jumbo Braids",
         "slug": "jumbo-braids",
         "description": "Bold, statement-making jumbo braids for a striking aesthetic and quicker installation.",
-        "imagePath": "/images/jumbo-optimized.jpg",
+        "imagePath": "/images/jumbo.png",
         "status": "published"
     },
     {
@@ -116,7 +116,7 @@
         "title": "Spring Twists",
         "slug": "spring-twists",
         "description": "Short, coiled spring twists that deliver a playful, voluminous style perfect for summer.",
-        "imagePath": "/images/spring-twists-optimized.jpg",
+        "imagePath": "/images/spring-twists.png",
         "status": "published"
     },
     {

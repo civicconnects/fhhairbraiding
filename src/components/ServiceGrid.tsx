@@ -17,9 +17,9 @@ export default function ServiceGrid() {
                 {localServices.map((service) => (
                     <Link to={`/services/${service.slug}`} key={service.id} className="group bg-neutral-900 border border-neutral-800 rounded-3xl overflow-hidden hover:border-amber-500/50 hover:bg-neutral-800/80 transition-all duration-300 shadow-lg block">
                         <div className="aspect-[4/5] overflow-hidden bg-black relative">
-                            {/* Fallback Unsplash image if custom imagePath is not yet optimized */}
+                            {/* Dynamic asset resolution honoring the JSON database schema */}
                             <img
-                                src="/images/gallery-2.png"
+                                src={service.imagePath || "/images/gallery-2.png"}
                                 alt={service.title}
                                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 opacity-90 group-hover:opacity-100"
                             />

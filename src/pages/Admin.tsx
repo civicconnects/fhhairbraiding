@@ -19,24 +19,65 @@ const Admin = () => {
     // Availability State
     const [availabilityStatus, setAvailabilityStatus] = useState('Limited availability remaining. Contact immediately to secure a slot for this Friday or Saturday.');
 
-    // Simulated Fetch
+    // Simulated Fetch -> Real API Fetch
     useEffect(() => {
-        // Fetch known services from local json if API fails, just for UI mapping
-        fetch('/src/content/services.json')
+        // We'll fetch from the active Cloudflare endpoint which queries D1
+        const baseUrl = import.meta.env.PROD ? 'https://fhhairbraiding.com' : 'http://localhost:8787';
+        fetch(`${baseUrl}/api/services`)
             .then(res => res.json())
-            .then(data => setServices(data))
-            .catch(() => console.error("Could not load services map"));
+            .then(data => {
+                if (data && Array.isArray(data)) {
+                    setServices(data);
+                } else {
+                    // Fallback to local
+                    fetch('/src/content/services.json')
+                        .then(res => res.json())
+                        .then(localData => setServices(localData));
+                }
+            })
+            .catch(() => {
+                // Fallback to local on error (like if dev environment)
+                fetch('/src/content/services.json')
+                    .then(res => res.json())
+                    .then(data => setServices(data));
+            });
     }, []);
 
     const handleGalleryUpload = async (e: any) => {
         e.preventDefault();
         if (!uploadFile) return alert("Please select an image file.");
+        if (!selectedCategory) return alert("Please select a target service category.");
         if (!altText) return alert("Please provide SEO alt-text for the image.");
 
-        // Simulate API Upload call
-        alert(`Success! Image uploaded to R2 and tagged under '${selectedCategory}' with alt-text: '${altText}'`);
-        setAltText('');
-        setUploadFile(null);
+        const formData = new FormData();
+        formData.append("file", uploadFile);
+        formData.append("serviceId", selectedCategory);
+        // Normally we'd also pass altText if the backend accepted it
+
+        try {
+            // Send to Cloudflare Worker Admin endpoint
+            const baseUrl = import.meta.env.PROD ? 'https://fhhairbraiding.com' : 'http://localhost:8787';
+            const response = await fetch(`${baseUrl}/api/admin/upload`, {
+                method: 'POST',
+                headers: {
+                    'X-Admin-Key': password
+                },
+                body: formData
+            });
+
+            if (!response.ok) {
+                const err = await response.json();
+                throw new Error(err.error || "Upload failed");
+            }
+
+            const data = await response.json();
+
+            alert(`Success! Image uploaded to R2 and mapped to the service. New URL: ${data.url}`);
+            setAltText('');
+            setUploadFile(null);
+        } catch (error: any) {
+            alert(`Error uploading file: ${error.message}`);
+        }
     };
 
     const handleSiloSave = (e: any) => {
@@ -133,11 +174,8 @@ const Admin = () => {
                                 <div className="space-y-2">
                                     <label className="text-sm font-bold text-neutral-400">Silo Category</label>
                                     <select title="Select category" aria-label="Select Category" value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)} className="w-full bg-black border border-neutral-800 rounded-xl p-4 focus:ring-1 focus:ring-amber-500 outline-none">
-                                        <option>Knotless</option>
-                                        <option>Bohemian</option>
-                                        <option>Box Braids</option>
-                                        <option>Cornrows</option>
-                                        <option>Twists</option>
+                                        <option value="">-- Select a Service --</option>
+                                        {services.map(s => <option key={s.id || s.slug} value={s.id}>{s.name || s.title}</option>)}
                                     </select>
                                 </div>
 

@@ -41,7 +41,8 @@ INSERT INTO services (
         name,
         description,
         price,
-        duration_minutes
+        duration_minutes,
+        image_url
     )
 VALUES (
         'srv_1',
@@ -49,7 +50,8 @@ VALUES (
         'Box Braids',
         'Classic box braids professionally installed.',
         15000,
-        240
+        240,
+        '/images/gallery-4.png'
     ),
     (
         'srv_2',
@@ -57,7 +59,8 @@ VALUES (
         'Bohemian Braids',
         'Beautiful boho braids with curly ends.',
         18000,
-        300
+        300,
+        '/images/gallery-2.png'
     ),
     (
         'srv_3',
@@ -65,7 +68,8 @@ VALUES (
         'Knotless Braids',
         'Pain-free knotless braids.',
         16000,
-        240
+        240,
+        '/images/gallery-1.png'
     ),
     (
         'srv_4',
@@ -73,7 +77,8 @@ VALUES (
         'Cornrows',
         'Sleek, straight-back cornrows.',
         8000,
-        120
+        120,
+        '/images/gallery-3.png'
     ),
     (
         'srv_5',
@@ -81,5 +86,6 @@ VALUES (
         'Passion Twists',
         'Bouncy and textured passion twists.',
         14000,
-        210
+        210,
+        '/images/after.png'
     );
