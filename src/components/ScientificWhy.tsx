@@ -9,7 +9,7 @@ export default function ScientificWhy() {
                     {/* Visual Side */}
                     <div className="relative aspect-square md:aspect-[4/3] rounded-3xl overflow-hidden bg-black shadow-2xl">
                         <img
-                            src="https://images.unsplash.com/photo-1595476108010-b4d1f10d5e43?auto=format&fit=crop&q=80&w=1200"
+                            src="/images/gallery-1.png"
                             alt="Precision parting and scalp health"
                             className="w-full h-full object-cover opacity-80"
                         />

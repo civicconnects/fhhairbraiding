@@ -19,7 +19,7 @@ export default function ServiceGrid() {
                         <div className="aspect-[4/5] overflow-hidden bg-black relative">
                             {/* Fallback Unsplash image if custom imagePath is not yet optimized */}
                             <img
-                                src={`https://images.unsplash.com/photo-1646244243103-625299863459?auto=format&fit=crop&q=80&w=800`}
+                                src="/images/gallery-2.png"
                                 alt={service.title}
                                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 opacity-90 group-hover:opacity-100"
                             />

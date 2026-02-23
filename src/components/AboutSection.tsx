@@ -51,7 +51,7 @@ export default function AboutSection() {
                         <div className="aspect-[4/5] rounded-3xl overflow-hidden bg-neutral-900 border border-neutral-800 shadow-2xl relative z-10">
                             {/* Placeholder for Stylist at work / Precision parting focus */}
                             <img
-                                src="https://images.unsplash.com/photo-1595476108010-b4d1f10d5e43?auto=format&fit=crop&q=80&w=1200"
+                                src="/images/after.png"
                                 alt="Master stylist executing precision parting for protective styles"
                                 className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-700"
                             />

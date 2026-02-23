@@ -4,12 +4,12 @@ import { Camera } from 'lucide-react';
 const categories = ["All", "Knotless", "Bohemian", "Box Braids", "Cornrows", "Twists"];
 
 const dummyImages = [
-    { id: 1, url: 'https://images.unsplash.com/photo-1629881850125-97fc388ce429?auto=format&fit=crop&q=80&w=800', category: 'Knotless', alt: 'Medium Knotless Braids Radcliff KY' },
-    { id: 2, url: 'https://images.unsplash.com/photo-1616788556602-d9228d4aeaba?auto=format&fit=crop&q=80&w=800', category: 'Bohemian', alt: 'Waist length Bohemian Braids Radcliff KY' },
-    { id: 3, url: 'https://images.unsplash.com/photo-1595476108010-b4d1f10d5e43?auto=format&fit=crop&q=80&w=800', category: 'Cornrows', alt: 'Precision stitched Cornrows Radcliff' },
-    { id: 4, url: 'https://images.unsplash.com/photo-1646244243103-625299863459?auto=format&fit=crop&q=80&w=800', category: 'Box Braids', alt: 'Classic Box Braids protective style' },
-    { id: 5, url: 'https://images.unsplash.com/photo-1542157585-ef20bfcce579?auto=format&fit=crop&q=80&w=800', category: 'Twists', alt: 'Senegalese Twists Radcliff' },
-    { id: 6, url: 'https://images.unsplash.com/photo-1630132338105-081075672b15?auto=format&fit=crop&q=80&w=800', category: 'Knotless', alt: 'Jumbo Knotless Braids style' },
+    { id: 1, url: '/images/gallery-1.png', category: 'Knotless', alt: 'Medium Knotless Braids Radcliff KY' },
+    { id: 2, url: '/images/gallery-2.png', category: 'Bohemian', alt: 'Waist length Bohemian Braids Radcliff KY' },
+    { id: 3, url: '/images/gallery-3.png', category: 'Cornrows', alt: 'Precision stitched Cornrows Radcliff' },
+    { id: 4, url: '/images/gallery-4.png', category: 'Box Braids', alt: 'Classic Box Braids protective style' },
+    { id: 5, url: '/images/hero-bg.png', category: 'Twists', alt: 'Senegalese Twists Radcliff' },
+    { id: 6, url: '/images/after.png', category: 'Knotless', alt: 'Jumbo Knotless Braids style' },
 ];
 
 export default function SignatureGallery() {
