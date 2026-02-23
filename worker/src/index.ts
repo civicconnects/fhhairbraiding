@@ -1,5 +1,12 @@
-/// <reference types="@cloudflare/workers-types" />
-import Stripe from 'stripe';
+// @ts-ignore
+import Stripe from '../../node_modules/stripe/esm/stripe.esm.worker.js';
+
+declare namespace Stripe {
+    type Event = any;
+    namespace Checkout {
+        type Session = any;
+    }
+}
 import { verifyStripeSignature } from './stripe';
 
 export interface Env {
@@ -36,9 +43,9 @@ export default {
         }
 
         const stripe = new Stripe(env.STRIPE_SECRET_KEY || 'sk_test_dummy', {
-            apiVersion: '2026-01-28.clover',
+            apiVersion: '2023-10-16',
             httpClient: Stripe.createFetchHttpClient(),
-        });
+        }) as any;
 
         // Admin Upload Route (Requires Password)
         if (url.pathname === "/api/admin/upload" && request.method === "POST") {
@@ -80,6 +87,19 @@ export default {
             return new Response(JSON.stringify({ url: newImageUrl }), {
                 headers: { ...corsHeaders, "Content-Type": "application/json" }
             });
+        }
+
+        // Services List Route (Publicly accessible for frontend and admin)
+        if (url.pathname === "/api/services" && request.method === "GET") {
+            try {
+                const { results } = await env.DB.prepare("SELECT * FROM services").all();
+                return new Response(JSON.stringify(results), {
+                    status: 200,
+                    headers: { ...corsHeaders, "Content-Type": "application/json" }
+                });
+            } catch (err: any) {
+                return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: corsHeaders });
+            }
         }
 
         // 1. Init Booking & Checkout Session
@@ -237,9 +257,9 @@ export default {
         if (results.length === 0) return;
 
         const stripe = new Stripe(env.STRIPE_SECRET_KEY || 'sk_test_dummy', {
-            apiVersion: '2026-01-28.clover',
+            apiVersion: '2023-10-16',
             httpClient: Stripe.createFetchHttpClient(),
-        });
+        }) as any;
 
         for (const appt of results as any[]) {
             if (!appt.stripe_session_id) continue;

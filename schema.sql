@@ -1,15 +1,9 @@
 -- D1 Database Schema for F&H Hair Braiding
-DROP TABLE IF EXISTS bookings;
-DROP TABLE IF EXISTS users;
+DROP TABLE IF EXISTS appointments;
+DROP TABLE IF EXISTS availability_slots;
 DROP TABLE IF EXISTS services;
-CREATE TABLE users (
-    id TEXT PRIMARY KEY,
-    email TEXT UNIQUE NOT NULL,
-    phone TEXT,
-    name TEXT NOT NULL,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    loyalty_points INTEGER DEFAULT 0
-);
+DROP TABLE IF EXISTS users;
+DROP TABLE IF EXISTS bookings;
 CREATE TABLE services (
     id TEXT PRIMARY KEY,
     slug TEXT UNIQUE NOT NULL,
@@ -19,22 +13,26 @@ CREATE TABLE services (
     -- Stored in cents
     deposit_amount INTEGER NOT NULL DEFAULT 2500,
     -- $25 in cents
-    duration_minutes INTEGER NOT NULL
+    duration_minutes INTEGER NOT NULL,
+    image_url TEXT -- Added for admin uploads
 );
-CREATE TABLE bookings (
+CREATE TABLE availability_slots (
     id TEXT PRIMARY KEY,
-    user_id TEXT NOT NULL,
-    service_id TEXT NOT NULL,
-    slot_id TEXT NOT NULL,
     -- e.g., '2026-03-01T10:00:00Z'
+    is_booked INTEGER DEFAULT 0,
+    version INTEGER DEFAULT 0
+);
+CREATE TABLE appointments (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    slot_id TEXT UNIQUE NOT NULL,
+    customer_name TEXT NOT NULL,
+    customer_email TEXT NOT NULL,
+    customer_phone TEXT NOT NULL,
     status TEXT NOT NULL CHECK(
-        status IN ('PENDING', 'CONFIRMED', 'CANCELLED', 'COMPLETED')
+        status IN ('pending_deposit', 'confirmed', 'cancelled')
     ),
-    stripe_payment_intent_id TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id),
-    FOREIGN KEY (service_id) REFERENCES services(id),
-    UNIQUE(slot_id) -- Crucial: Prevents double-booking at the database level!
+    stripe_session_id TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 -- Insert initial services
 INSERT INTO services (

@@ -1,41 +1,42 @@
-import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import localServices from '../content/services.json';
 
 export default function ServiceGrid() {
-    const [services, setServices] = useState([]);
-
-    useEffect(() => {
-        fetch('https://fhhairbraiding.dwhite4388.workers.dev/api/services')
-            .then(res => res.json())
-            .then(data => setServices(data))
-            .catch(err => console.error("F&H Fetch Error:", err));
-    }, []);
-
     return (
-        <section className="w-full max-w-7xl mx-auto px-6 py-20">
-            <h2 className="text-4xl font-bold mb-12 text-center text-amber-500">Our Signature Styles</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
-                {services.map((service: any) => (
-                    <div key={service.id} className="group bg-neutral-800/50 border border-white/5 rounded-3xl overflow-hidden hover:border-amber-500/50 transition-all duration-500">
-                        <div className="aspect-[4/5] overflow-hidden bg-neutral-900">
+        <section className="w-full max-w-7xl mx-auto px-6 py-24 font-sans border-t border-neutral-900">
+            <div className="text-center mb-16">
+                <h2 className="text-4xl md:text-5xl font-serif font-bold text-white mb-4">
+                    Our Signature <span className="text-amber-500 italic">Crowns</span>
+                </h2>
+                <p className="text-lg text-neutral-400 font-light max-w-2xl mx-auto">
+                    Explore our premium braiding portfolio. Every style is crafted with protective, tension-free techniques to ensure scalp longevity and stunning results.
+                </p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                {localServices.map((service) => (
+                    <Link to={`/services/${service.slug}`} key={service.id} className="group bg-neutral-900 border border-neutral-800 rounded-3xl overflow-hidden hover:border-amber-500/50 hover:bg-neutral-800/80 transition-all duration-300 shadow-lg block">
+                        <div className="aspect-[4/5] overflow-hidden bg-black relative">
+                            {/* Fallback Unsplash image if custom imagePath is not yet optimized */}
                             <img
-                                src={service.image_url || `https://images.unsplash.com/photo-1646244243103-625299863459?auto=format&fit=crop&q=80&w=800`}
-                                alt={service.name}
-                                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                                src={`https://images.unsplash.com/photo-1646244243103-625299863459?auto=format&fit=crop&q=80&w=800`}
+                                alt={service.title}
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 opacity-90 group-hover:opacity-100"
                             />
-                        </div>
-                        <div className="p-8">
-                            <div className="flex justify-between items-start mb-4">
-                                <h3 className="text-2xl font-bold">{service.name}</h3>
-                                <span className="text-amber-500 font-mono text-xl">${service.base_price}</span>
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent pointer-events-none" />
+                            <div className="absolute bottom-6 left-6 right-6 flex justify-between items-end">
+                                <h3 className="text-2xl font-serif font-bold text-white text-shadow-sm">{service.title}</h3>
                             </div>
-                            <p className="text-neutral-400 mb-6">{service.duration_minutes / 60} Hour Session</p>
-                            <button className="w-full py-4 bg-white text-black font-bold rounded-xl hover:bg-amber-500 hover:text-white transition-colors">
-                                Book Appointment
-                            </button>
                         </div>
-                    </div>
+                        <div className="p-6">
+                            <p className="text-neutral-400 text-sm line-clamp-2 leading-relaxed mb-6">{service.description}</p>
+                            <div className="w-full py-4 text-center border-t border-neutral-800 text-amber-500 font-bold tracking-widest text-xs uppercase group-hover:text-amber-400 transition-colors">
+                                View Details &rarr;
+                            </div>
+                        </div>
+                    </Link>
                 ))}
             </div>
         </section>
     );
-};
+}
