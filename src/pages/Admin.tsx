@@ -19,24 +19,20 @@ const Admin = () => {
     // Availability State
     const [availabilityStatus, setAvailabilityStatus] = useState('Limited availability remaining. Contact immediately to secure a slot for this Friday or Saturday.');
 
-    // Simulated Fetch -> Real API Fetch
+    // Fetch services from /api/services (Cloudflare Pages Function — same domain, no CORS)
     useEffect(() => {
-        // We'll fetch from the active Cloudflare endpoint which queries D1
-        const baseUrl = import.meta.env.PROD ? 'https://fhhairbraiding.com' : 'http://localhost:8787';
-        fetch(`${baseUrl}/api/services`)
+        fetch('/api/services')
             .then(res => res.json())
             .then(data => {
                 if (data && Array.isArray(data)) {
                     setServices(data);
                 } else {
-                    // Fallback to local
                     fetch('/src/content/services.json')
                         .then(res => res.json())
                         .then(localData => setServices(localData));
                 }
             })
             .catch(() => {
-                // Fallback to local on error (like if dev environment)
                 fetch('/src/content/services.json')
                     .then(res => res.json())
                     .then(data => setServices(data));
@@ -55,9 +51,8 @@ const Admin = () => {
         // Normally we'd also pass altText if the backend accepted it
 
         try {
-            // Send to Cloudflare Worker Admin endpoint
-            const baseUrl = import.meta.env.PROD ? 'https://fhhairbraiding.com' : 'http://localhost:8787';
-            const response = await fetch(`${baseUrl}/api/admin/upload`, {
+            // Send to Pages Function (same domain — no CORS issues)
+            const response = await fetch('/api/admin/upload', {
                 method: 'POST',
                 headers: {
                     'X-Admin-Key': password
@@ -108,8 +103,7 @@ const Admin = () => {
                             e.preventDefault();
                             if (password.length > 0) {
                                 try {
-                                    const baseUrl = import.meta.env.PROD ? 'https://fhhairbraiding.com' : 'http://localhost:8787';
-                                    const res = await fetch(`${baseUrl}/api/login`, {
+                                    const res = await fetch('/api/login', {
                                         method: 'POST',
                                         headers: { 'X-Admin-Key': password }
                                     });

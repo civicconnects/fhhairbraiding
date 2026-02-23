@@ -13,7 +13,7 @@ database_id = "02d1cbc7-ae7f-413b-b2c9-f271660bd372"
 [vars]
 STRIPE_SECRET_KEY = "sk_test_..."
 STRIPE_WEBHOOK_SECRET = "whsec_..."
-FRONTEND_URL = "http://localhost:5173"
+FRONTEND_URL = "https://fh-hairbraiding.pages.dev"
 
 [triggers]
 crons = ["*/30 * * * *"] # Run every 30 minutes for Reconciliations
