@@ -47,6 +47,20 @@ export default {
             httpClient: Stripe.createFetchHttpClient(),
         }) as any;
 
+        // Admin Auth Route
+        if (url.pathname === "/api/login" && request.method === "POST") {
+            const adminKey = request.headers.get("X-Admin-Key");
+            const secretPassword = env.ADMIN_PASSWORD || "your-secret-password";
+
+            if (!adminKey || adminKey !== secretPassword) {
+                return new Response(JSON.stringify({ error: "Unauthorized" }), {
+                    status: 401,
+                    headers: corsHeaders
+                });
+            }
+            return new Response(JSON.stringify({ success: true }), { status: 200, headers: corsHeaders });
+        }
+
         // Admin Upload Route (Requires Password)
         if (url.pathname === "/api/admin/upload" && request.method === "POST") {
             const adminKey = request.headers.get("X-Admin-Key");

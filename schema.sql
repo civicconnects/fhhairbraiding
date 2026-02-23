@@ -73,6 +73,15 @@ VALUES (
     ),
     (
         'srv_4',
+        'passion-twists',
+        'Passion Twists',
+        'Bouncy and textured passion twists.',
+        14000,
+        210,
+        '/images/after.png'
+    ),
+    (
+        'srv_5',
         'cornrows',
         'Cornrows',
         'Sleek, straight-back cornrows.',
@@ -81,11 +90,101 @@ VALUES (
         '/images/gallery-3.png'
     ),
     (
-        'srv_5',
-        'passion-twists',
-        'Passion Twists',
-        'Bouncy and textured passion twists.',
-        14000,
-        210,
+        'srv_6',
+        'fulani-braids',
+        'Fulani Braids',
+        'Elegant Fulani-inspired styles mixing cornrows and box braids for a striking cultural statement.',
+        16000,
+        240,
+        '/images/gallery-2.png'
+    ),
+    (
+        'srv_7',
+        'lemonade-braids',
+        'Lemonade Braids',
+        'Signature side-swept Lemonade braids executed with structural perfection.',
+        12000,
+        180,
+        '/images/gallery-1.png'
+    ),
+    (
+        'srv_8',
+        'faux-locs',
+        'Faux Locs',
+        'Stunning, realistic Faux Locs providing a long-term protective style with a natural finish.',
+        20000,
+        360,
         '/images/after.png'
+    ),
+    (
+        'srv_9',
+        'goddess-braids',
+        'Goddess Braids',
+        'Thick, regal Goddess braids combined with curly leave-outs for unparalleled volume.',
+        15000,
+        210,
+        '/images/gallery-4.png'
+    ),
+    (
+        'srv_10',
+        'senegalese-twists',
+        'Senegalese Twists',
+        'Smooth and elegant Senegalese Twists crafted using the two-strand method for a polished look.',
+        14000,
+        240,
+        '/images/gallery-3.png'
+    ),
+    (
+        'srv_11',
+        'tribal-braids',
+        'Tribal Braids',
+        'Intricate tribal patterns demonstrating advanced geometric parting and styling.',
+        18000,
+        270,
+        '/images/gallery-2.png'
+    ),
+    (
+        'srv_12',
+        'crochet-braids',
+        'Crochet Braids',
+        'Fast and safe Crochet installations offering endless style variations with zero tension.',
+        12000,
+        150,
+        '/images/gallery-1.png'
+    ),
+    (
+        'srv_13',
+        'micro-braids',
+        'Micro Braids',
+        'Delicate, tiny micro braids offering the flexibility of freely moving hair with the protection of braids.',
+        25000,
+        420,
+        '/images/gallery-4.png'
+    ),
+    (
+        'srv_14',
+        'jumbo-braids',
+        'Jumbo Braids',
+        'Bold, statement-making jumbo braids for a striking aesthetic and quicker installation.',
+        10000,
+        150,
+        '/images/after.png'
+    ),
+    (
+        'srv_15',
+        'spring-twists',
+        'Spring Twists',
+        'Short, coiled spring twists that deliver a playful, voluminous style perfect for summer.',
+        13000,
+        180,
+        '/images/gallery-3.png'
+    ),
+    (
+        'srv_16',
+        'ponytails-updos',
+        'Ponytails & Updos',
+        'Sophisticated Braided Ponytails & High-Crown Styles.',
+        8000,
+        180,
+        '/images/gallery-1.png'
     );

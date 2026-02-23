@@ -104,9 +104,24 @@ const Admin = () => {
                     </div>
 
                     <form
-                        onSubmit={(e) => {
+                        onSubmit={async (e) => {
                             e.preventDefault();
-                            if (password.length > 0) setIsLoggedIn(true);
+                            if (password.length > 0) {
+                                try {
+                                    const baseUrl = import.meta.env.PROD ? 'https://fhhairbraiding.com' : 'http://localhost:8787';
+                                    const res = await fetch(`${baseUrl}/api/login`, {
+                                        method: 'POST',
+                                        headers: { 'X-Admin-Key': password }
+                                    });
+                                    if (res.ok) {
+                                        setIsLoggedIn(true);
+                                    } else {
+                                        alert("Invalid Master Password. Unauthorized.");
+                                    }
+                                } catch (err) {
+                                    alert("Could not reach authentication server.");
+                                }
+                            }
                         }}
                         className="space-y-4 relative z-10"
                     >

@@ -5462,6 +5462,17 @@ var src_default = {
       apiVersion: "2023-10-16",
       httpClient: stripe_esm_worker_default.createFetchHttpClient()
     });
+    if (url.pathname === "/api/login" && request.method === "POST") {
+      const adminKey = request.headers.get("X-Admin-Key");
+      const secretPassword = env.ADMIN_PASSWORD || "your-secret-password";
+      if (!adminKey || adminKey !== secretPassword) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401,
+          headers: corsHeaders
+        });
+      }
+      return new Response(JSON.stringify({ success: true }), { status: 200, headers: corsHeaders });
+    }
     if (url.pathname === "/api/admin/upload" && request.method === "POST") {
       const adminKey = request.headers.get("X-Admin-Key");
       const secretPassword = env.ADMIN_PASSWORD || "your-secret-password";
