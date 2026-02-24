@@ -1,0 +1,24 @@
+name = "fhhairbraiding"
+main = "worker/src/index.ts"
+compatibility_date = "2024-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+# D1 Database binding
+[[d1_databases]]
+binding = "DB"
+database_name = "fh-bookings-db"
+database_id = "22c8c657-a00e-4df4-a8e0-83f0c9c6d8b3"
+
+# Variables for Stripe
+[vars]
+STRIPE_SECRET_KEY = "sk_test_..."
+STRIPE_WEBHOOK_SECRET = "whsec_..."
+FRONTEND_URL = "https://fh-hairbraiding.pages.dev"
+
+[triggers]
+crons = ["*/30 * * * *"] # Run every 30 minutes for Reconciliations
+
+# R2 Bucket binding
+[[r2_buckets]]
+binding = "BRAIDS_BUCKET"
+bucket_name = "fh-braids-images"
