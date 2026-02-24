@@ -7,7 +7,7 @@ compatibility_flags = ["nodejs_compat"]
 [[d1_databases]]
 binding = "DB"
 database_name = "fh-bookings-db"
-database_id = "02d1cbc7-ae7f-413b-b2c9-f271660bd372"
+database_id = "22c8c657-a00e-4df4-a8e0-83f0c9c6d8b3"
 
 # Variables for Stripe
 [vars]
@@ -21,4 +21,4 @@ crons = ["*/30 * * * *"] # Run every 30 minutes for Reconciliations
 # R2 Bucket binding
 [[r2_buckets]]
 binding = "BRAIDS_BUCKET"
-bucket_name = "fh-braids-bucket"
+bucket_name = "fh-braids-images"
