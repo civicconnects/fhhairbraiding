@@ -1,23 +1,53 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Camera } from 'lucide-react';
 
-const categories = ["All", "Knotless", "Bohemian", "Box Braids", "Cornrows", "Twists"];
+type GalleryImage = {
+    id: number;
+    service_id: string;
+    service_slug: string;
+    image_url: string;
+    section: string;
+    uploaded_at: string;
+};
 
-const dummyImages = [
-    { id: 1, url: '/images/gallery-1.png', category: 'Knotless', alt: 'Medium Knotless Braids Radcliff KY' },
-    { id: 2, url: '/images/gallery-2.png', category: 'Bohemian', alt: 'Waist length Bohemian Braids Radcliff KY' },
-    { id: 3, url: '/images/gallery-3.png', category: 'Cornrows', alt: 'Precision stitched Cornrows Radcliff' },
-    { id: 4, url: '/images/gallery-4.png', category: 'Box Braids', alt: 'Classic Box Braids protective style' },
-    { id: 5, url: '/images/hero-bg.png', category: 'Twists', alt: 'Senegalese Twists Radcliff' },
-    { id: 6, url: '/images/after.png', category: 'Knotless', alt: 'Jumbo Knotless Braids style' },
+// Fallback local images shown while D1 data loads
+const localFallback: GalleryImage[] = [
+    { id: 1, service_slug: 'knotless-braids', service_id: 'srv_3', image_url: '/images/gallery-1.png', section: 'portfolio', uploaded_at: '' },
+    { id: 2, service_slug: 'bohemian-braids', service_id: 'srv_2', image_url: '/images/gallery-2.png', section: 'portfolio', uploaded_at: '' },
+    { id: 3, service_slug: 'cornrows', service_id: 'srv_5', image_url: '/images/gallery-3.png', section: 'portfolio', uploaded_at: '' },
+    { id: 4, service_slug: 'box-braids', service_id: 'srv_1', image_url: '/images/gallery-4.png', section: 'portfolio', uploaded_at: '' },
+    { id: 5, service_slug: 'faux-locs', service_id: 'srv_8', image_url: '/images/hero-bg.png', section: 'portfolio', uploaded_at: '' },
+    { id: 6, service_slug: 'passion-twists', service_id: 'srv_4', image_url: '/images/after.png', section: 'portfolio', uploaded_at: '' },
 ];
 
 export default function SignatureGallery() {
+    const [images, setImages] = useState<GalleryImage[]>(localFallback);
     const [activeFilter, setActiveFilter] = useState("All");
+    const [categories, setCategories] = useState<string[]>(["All"]);
+
+    useEffect(() => {
+        // Fetch only 'portfolio' section images from D1 gallery_images table
+        fetch('/api/gallery?section=portfolio', { cache: 'no-store' })
+            .then(res => res.json())
+            .then((data: GalleryImage[]) => {
+                if (Array.isArray(data) && data.length > 0) {
+                    setImages(data);
+                    // Build category list from the returned slugs
+                    const slugSet = Array.from(new Set(data.map(img =>
+                        img.service_slug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+                    )));
+                    setCategories(["All", ...slugSet]);
+                }
+            })
+            .catch(() => {/* silently keep fallback */ });
+    }, []);
+
+    const slugLabel = (slug: string) =>
+        slug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 
     const filteredImages = activeFilter === "All"
-        ? dummyImages
-        : dummyImages.filter(img => img.category === activeFilter);
+        ? images
+        : images.filter(img => slugLabel(img.service_slug) === activeFilter);
 
     return (
         <section className="w-full bg-black py-24 border-t border-neutral-900 font-sans">
@@ -33,7 +63,7 @@ export default function SignatureGallery() {
                         </h2>
                     </div>
 
-                    {/* Filters */}
+                    {/* Dynamic category filters from D1 */}
                     <div className="flex flex-wrap gap-2 justify-start md:justify-end">
                         {categories.map(category => (
                             <button
@@ -50,23 +80,21 @@ export default function SignatureGallery() {
                     </div>
                 </div>
 
-                {/* Masonry-style Grid Simulator */}
+                {/* Masonry-style Grid */}
                 <div className="columns-1 sm:columns-2 lg:columns-3 gap-6 space-y-6">
                     {filteredImages.map((img) => (
                         <div key={img.id} className="relative group overflow-hidden rounded-2xl break-inside-avoid bg-neutral-900">
                             <img
-                                src={img.url}
-                                alt={img.alt}
+                                src={img.image_url}
+                                alt={`${slugLabel(img.service_slug)} – F&H Hair Braiding Radcliff KY`}
                                 className="w-full h-auto object-cover opacity-90 group-hover:opacity-100 group-hover:scale-105 transition-all duration-700"
                                 loading="lazy"
                             />
                             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
-
                             <div className="absolute bottom-0 left-0 right-0 p-6 translate-y-4 group-hover:translate-y-0 opacity-0 group-hover:opacity-100 transition-all duration-300">
                                 <span className="inline-block px-3 py-1 bg-black/60 backdrop-blur-md rounded border border-neutral-700 text-xs font-bold text-amber-500 tracking-widest uppercase mb-2">
-                                    {img.category}
+                                    {slugLabel(img.service_slug)}
                                 </span>
-                                <p className="text-white text-sm font-medium leading-snug">{img.alt}</p>
                             </div>
                         </div>
                     ))}
@@ -74,7 +102,7 @@ export default function SignatureGallery() {
 
                 {filteredImages.length === 0 && (
                     <div className="py-20 text-center border border-dashed border-neutral-800 rounded-2xl">
-                        <p className="text-neutral-500">No images found for this category yet.</p>
+                        <p className="text-neutral-500">No images uploaded to this category yet.</p>
                     </div>
                 )}
 
@@ -92,10 +120,9 @@ export default function SignatureGallery() {
                     <div className="bg-black border border-neutral-800 rounded-3xl overflow-hidden shadow-2xl flex flex-col items-center justify-center p-8 text-center h-full min-h-[300px]">
                         <p className="text-sm font-bold text-neutral-500 uppercase tracking-widest mb-4">Trending on TikTok</p>
                         <h3 className="text-2xl font-serif font-bold text-white mb-6">Watch the Process</h3>
-                        {/* Placeholder for TikTok Embed script - standard integration */}
                         <div className="w-full flex justify-center opacity-80 hover:opacity-100 transition-opacity">
                             <a href="https://tiktok.com/@fhhairbraiding" target="_blank" rel="noopener noreferrer" className="inline-flex flex-col items-center gap-4 text-white hover:text-amber-500 transition-colors">
-                                <span className="p-4 rounded-full bg-neutral-900 border border-neutral-800 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                <span className="p-4 rounded-full bg-neutral-900 border border-neutral-800 flex items-center justify-center">
                                     <svg className="w-8 h-8" viewBox="0 0 24 24" fill="currentColor">
                                         <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05 6.33 6.33 0 0 0-5 10.33 6.37 6.37 0 0 0 10.15-2.07l.06-.11V8.65a8.44 8.44 0 0 0 5 1.55z" />
                                     </svg>

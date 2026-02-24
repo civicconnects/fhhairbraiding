@@ -52,6 +52,31 @@ export default {
             }
         }
 
+        // ── GET /api/gallery?section=signature|portfolio ─────────────────────
+        if (url.pathname === "/api/gallery" && request.method === "GET") {
+            try {
+                const section = url.searchParams.get("section");
+                let results;
+                if (section === "signature" || section === "portfolio") {
+                    ({ results } = await env.DB.prepare(
+                        "SELECT id, service_id, service_slug, image_url, section, uploaded_at FROM gallery_images WHERE section = ? ORDER BY uploaded_at DESC"
+                    ).bind(section).all());
+                } else {
+                    ({ results } = await env.DB.prepare(
+                        "SELECT id, service_id, service_slug, image_url, section, uploaded_at FROM gallery_images ORDER BY uploaded_at DESC"
+                    ).all());
+                }
+                return new Response(JSON.stringify(results), {
+                    status: 200, headers: corsHeaders
+                });
+            } catch (e) {
+                return new Response(JSON.stringify({ error: e.message }), {
+                    status: 500, headers: corsHeaders
+                });
+            }
+        }
+
+
         // ── POST /api/admin/upload ───────────────────────────────────────────
         if (url.pathname === "/api/admin/upload" && request.method === "POST") {
             const adminKey = request.headers.get("X-Admin-Key");
