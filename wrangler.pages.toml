@@ -11,7 +11,7 @@ database_id = "22c8c657-a00e-4df4-a8e0-83f0c9c6d8b3"
 
 # R2 Bucket binding
 [[r2_buckets]]
-binding = "BRAIDS_BUCKET"
+binding = "BUCKET"
 bucket_name = "fh-braids-images"
 
 # Plain vars (secrets like ADMIN_PASSWORD are set in Dashboard)

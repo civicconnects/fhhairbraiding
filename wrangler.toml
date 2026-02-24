@@ -20,5 +20,5 @@ crons = ["*/30 * * * *"] # Run every 30 minutes for Reconciliations
 
 # R2 Bucket binding
 [[r2_buckets]]
-binding = "BRAIDS_BUCKET"
+binding = "BUCKET"
 bucket_name = "fh-braids-images"
