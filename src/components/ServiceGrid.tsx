@@ -54,11 +54,11 @@ export default function ServiceGrid() {
                             key={service.id}
                             className="group bg-neutral-900 border border-neutral-800 rounded-3xl overflow-hidden hover:border-amber-500/50 hover:bg-neutral-800/80 transition-all duration-300 shadow-lg block"
                         >
-                            <div className="aspect-[4/5] overflow-hidden bg-black relative">
+                            <div className="aspect-[4/5] overflow-hidden bg-[#1a1a1a] relative">
                                 <img
                                     src={imgSrc}
                                     alt={displayName}
-                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 opacity-90 group-hover:opacity-100"
+                                    className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-700 opacity-90 group-hover:opacity-100"
                                 />
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent pointer-events-none" />
                                 <div className="absolute bottom-6 left-6 right-6 flex justify-between items-end">

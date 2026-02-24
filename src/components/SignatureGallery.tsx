@@ -83,11 +83,11 @@ export default function SignatureGallery() {
                 {/* Masonry-style Grid */}
                 <div className="columns-1 sm:columns-2 lg:columns-3 gap-6 space-y-6">
                     {filteredImages.map((img) => (
-                        <div key={img.id} className="relative group overflow-hidden rounded-2xl break-inside-avoid bg-neutral-900">
+                        <div key={img.id} className="relative group overflow-hidden rounded-2xl break-inside-avoid bg-[#1a1a1a]">
                             <img
                                 src={img.image_url}
                                 alt={`${slugLabel(img.service_slug)} – F&H Hair Braiding Radcliff KY`}
-                                className="w-full h-auto object-cover opacity-90 group-hover:opacity-100 group-hover:scale-105 transition-all duration-700"
+                                className="w-full h-auto object-contain opacity-90 group-hover:opacity-100 group-hover:scale-105 transition-all duration-700"
                                 loading="lazy"
                             />
                             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
