@@ -1,3 +1,7 @@
+// POST /api/book — public booking endpoint
+// Writes to D1 bookings table with conflict check.
+// Optionally also creates a Google Calendar event if keys are present.
+
 import { getGoogleAuthToken } from './_googleAuth';
 
 export async function onRequestPost(context: any) {
@@ -7,55 +11,55 @@ export async function onRequestPost(context: any) {
         const body = await request.json() as any;
         const { clientName, clientPhone, clientEmail, serviceName, startTime, durationHours } = body;
 
-        if (!clientName || !clientPhone || !serviceName || !startTime || !durationHours) {
+        if (!clientName || !clientPhone || !serviceName || !startTime) {
             return new Response(JSON.stringify({ error: "Missing required booking details." }), { status: 400 });
         }
 
-        const token = await getGoogleAuthToken(env);
+        const dt = new Date(startTime);
+        const date = dt.toISOString().split('T')[0];
+        const time = dt.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
 
-        const startDate = new Date(startTime);
-        const endDate = new Date(startDate.getTime() + (durationHours * 60 * 60 * 1000));
+        // ── Conflict check in D1 ────────────────────────────────────────────
+        const { results: conflicts } = await env.DB.prepare(
+            "SELECT id FROM bookings WHERE date = ? AND time = ? AND status IN ('pending','confirmed')"
+        ).bind(date, time).all();
 
-        const eventPayload = {
-            summary: `Braiding Appt: ${clientName} - ${serviceName}`,
-            description: `Service: ${serviceName}\nClient: ${clientName}\nPhone: ${clientPhone}\nEmail: ${clientEmail || 'N/A'}\n\nLead generated via FH-HairBraiding Authority Engine.`,
-            start: {
-                dateTime: startDate.toISOString(),
-                timeZone: 'America/New_York',
-            },
-            end: {
-                dateTime: endDate.toISOString(),
-                timeZone: 'America/New_York',
-            },
-            // Optionally add client email as attendee if they provide it to auto-dispatch the invite
-            attendees: clientEmail ? [{ email: clientEmail }] : [],
-            reminders: {
-                useDefault: true,
-            }
-        };
+        if (conflicts.length > 0) {
+            return new Response(JSON.stringify({
+                error: "This time slot is already taken. Please choose another time."
+            }), { status: 409, headers: { 'Content-Type': 'application/json' } });
+        }
 
-        const calResp = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(env.GOOGLE_CALENDAR_ID)}/events?sendUpdates=all`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(eventPayload)
-        });
+        // ── Save booking to D1 ──────────────────────────────────────────────
+        await env.DB.prepare(
+            "INSERT INTO bookings (customer_name, phone, email, service_type, date, time, status) VALUES (?, ?, ?, ?, ?, ?, 'pending')"
+        ).bind(clientName, clientPhone, clientEmail || '', serviceName, date, time).run();
 
-        const eventData = await calResp.json() as any;
-
-        if (!calResp.ok) {
-            return new Response(JSON.stringify({ error: eventData }), { status: 500 });
+        // ── Optional: Google Calendar event (skip gracefully if keys missing) ──
+        if (env.GOOGLE_CALENDAR_ID && env.GOOGLE_SERVICE_ACCOUNT_JSON) {
+            try {
+                const token = await getGoogleAuthToken(env);
+                const startDate = new Date(startTime);
+                const endDate = new Date(startDate.getTime() + ((durationHours || 4) * 60 * 60 * 1000));
+                const eventPayload = {
+                    summary: `Braiding Appt: ${clientName} - ${serviceName}`,
+                    description: `Service: ${serviceName}\nClient: ${clientName}\nPhone: ${clientPhone}\nEmail: ${clientEmail || 'N/A'}`,
+                    start: { dateTime: startDate.toISOString(), timeZone: 'America/New_York' },
+                    end: { dateTime: endDate.toISOString(), timeZone: 'America/New_York' },
+                    attendees: clientEmail ? [{ email: clientEmail }] : [],
+                };
+                await fetch(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(env.GOOGLE_CALENDAR_ID)}/events?sendUpdates=all`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify(eventPayload)
+                });
+            } catch (_) { /* Calendar optional — D1 booking already saved */ }
         }
 
         return new Response(JSON.stringify({
             status: "success",
-            message: "Calendar invite dispatched!",
-            eventId: eventData.id
-        }), {
-            headers: { 'Content-Type': 'application/json' }
-        });
+            message: "Booking request received! Monica will confirm shortly."
+        }), { headers: { 'Content-Type': 'application/json' } });
 
     } catch (e: any) {
         return new Response(JSON.stringify({ error: e.message }), { status: 500 });

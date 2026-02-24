@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Camera, Type, Clock, ShieldCheck, LogOut, CheckCircle2 } from 'lucide-react';
+import { Camera, Type, Clock, ShieldCheck, LogOut, CheckCircle2, CalendarDays } from 'lucide-react';
 
 const Admin = () => {
     const [services, setServices] = useState<any[]>([]);
@@ -16,6 +16,10 @@ const Admin = () => {
     // Silo Editor State
     const [selectedSilo, setSelectedSilo] = useState('');
     const [siloContent, setSiloContent] = useState('');
+
+    // Schedule State
+    const [bookings, setBookings] = useState<any[]>([]);
+    const [bookingsLoading, setBookingsLoading] = useState(false);
 
     // Availability State
     const [availabilityStatus, setAvailabilityStatus] = useState('Limited availability remaining. Contact immediately to secure a slot for this Friday or Saturday.');
@@ -98,6 +102,29 @@ const Admin = () => {
     const handleAvailabilitySave = (e: any) => {
         e.preventDefault();
         alert(`Success! Availability Status updated across the application.`);
+    };
+
+    const fetchBookings = async () => {
+        setBookingsLoading(true);
+        try {
+            const res = await fetch('/api/bookings', {
+                headers: { 'X-Admin-Key': password }
+            });
+            if (res.ok) {
+                const data = await res.json();
+                setBookings(data);
+            }
+        } catch (_) { }
+        finally { setBookingsLoading(false); }
+    };
+
+    const updateBookingStatus = async (id: number, status: string) => {
+        await fetch('/api/bookings', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json', 'X-Admin-Key': password },
+            body: JSON.stringify({ id, status })
+        });
+        fetchBookings(); // refresh
     };
 
     if (!isLoggedIn) {
@@ -183,6 +210,10 @@ const Admin = () => {
                         <button onClick={() => setActiveTab('availability')} className={`flex items-center gap-3 p-4 rounded-xl text-sm font-bold transition-all ${activeTab === 'availability' ? 'bg-amber-500 text-black' : 'bg-neutral-900 text-neutral-400 hover:bg-neutral-800 hover:text-white'}`}>
                             <Clock className="w-5 h-5" />
                             Global Availability
+                        </button>
+                        <button onClick={() => { setActiveTab('schedule'); fetchBookings(); }} className={`flex items-center gap-3 p-4 rounded-xl text-sm font-bold transition-all ${activeTab === 'schedule' ? 'bg-amber-500 text-black' : 'bg-neutral-900 text-neutral-400 hover:bg-neutral-800 hover:text-white'}`}>
+                            <CalendarDays className="w-5 h-5" />
+                            Schedule
                         </button>
                     </nav>
 
@@ -273,6 +304,56 @@ const Admin = () => {
                                     Update Global Availability
                                 </button>
                             </form>
+                        )}
+
+                        {/* Tab 4: Schedule */}
+                        {activeTab === 'schedule' && (
+                            <div className="space-y-6">
+                                <div className="flex justify-between items-center mb-6">
+                                    <h2 className="text-2xl font-serif font-bold">Booking Schedule</h2>
+                                    <button onClick={fetchBookings} className="text-xs font-bold text-amber-500 hover:text-white uppercase tracking-widest transition-colors">↻ Refresh</button>
+                                </div>
+
+                                {bookingsLoading ? (
+                                    <div className="flex justify-center py-12">
+                                        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-amber-500" />
+                                    </div>
+                                ) : bookings.length === 0 ? (
+                                    <div className="py-16 text-center border border-dashed border-neutral-800 rounded-2xl">
+                                        <CalendarDays className="w-10 h-10 text-neutral-600 mx-auto mb-3" />
+                                        <p className="text-neutral-500">No bookings yet.</p>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-3">
+                                        {bookings.map((b: any) => (
+                                            <div key={b.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-black border border-neutral-800 rounded-xl p-4 hover:border-neutral-700 transition-colors">
+                                                <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                                                    <div className="text-center bg-neutral-900 rounded-lg px-4 py-2 min-w-[100px]">
+                                                        <p className="text-amber-500 font-bold text-sm">{b.date}</p>
+                                                        <p className="text-neutral-400 text-xs font-mono">{b.time}</p>
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-white font-bold">{b.customer_name}</p>
+                                                        <p className="text-neutral-400 text-sm">{b.service_type}</p>
+                                                        <p className="text-neutral-600 text-xs">{b.phone}{b.email ? ` · ${b.email}` : ''}</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-3 shrink-0">
+                                                    <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${b.status === 'confirmed' ? 'bg-green-500/20 text-green-400' : b.status === 'cancelled' ? 'bg-red-500/20 text-red-400' : 'bg-amber-500/20 text-amber-400'}`}>
+                                                        {b.status}
+                                                    </span>
+                                                    {b.status === 'pending' && (
+                                                        <>
+                                                            <button onClick={() => updateBookingStatus(b.id, 'confirmed')} className="text-xs font-bold text-green-400 hover:text-white border border-green-800 hover:border-green-400 px-3 py-1 rounded-lg transition-all">Confirm</button>
+                                                            <button onClick={() => updateBookingStatus(b.id, 'cancelled')} className="text-xs font-bold text-red-400 hover:text-white border border-red-900 hover:border-red-400 px-3 py-1 rounded-lg transition-all">Cancel</button>
+                                                        </>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
                         )}
 
                     </main>

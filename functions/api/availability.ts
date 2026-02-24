@@ -1,56 +1,37 @@
-import { getGoogleAuthToken } from './_googleAuth';
+// GET /api/availability?date=YYYY-MM-DD
+// Returns which time slots are already booked for that date (pending or confirmed)
+// Used by CalendarPicker to gray out unavailable slots
 
 export async function onRequestGet(context: any) {
     const { env, request } = context;
 
     try {
-        if (!env.GOOGLE_CLIENT_EMAIL || !env.GOOGLE_PRIVATE_KEY || !env.GOOGLE_CALENDAR_ID) {
-            return new Response(JSON.stringify({ error: "Google Calendar secrets not configured." }), { status: 500 });
-        }
-
         const url = new URL(request.url);
-        // Default to finding availability for the next 14 days
-        const start = url.searchParams.get('start') || new Date().toISOString();
-        const endDay = new Date();
-        endDay.setDate(endDay.getDate() + 14);
-        const end = url.searchParams.get('end') || endDay.toISOString();
+        const date = url.searchParams.get('date');
 
-        const token = await getGoogleAuthToken(env);
-
-        // Fetch freeBusy from Google Calendar
-        const calResp = await fetch(`https://www.googleapis.com/calendar/v3/freeBusy`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                timeMin: start,
-                timeMax: end,
-                timeZone: 'America/New_York', // ET for Kentucky area
-                items: [{ id: env.GOOGLE_CALENDAR_ID }]
-            })
-        });
-
-        const freeBusyData = await calResp.json() as any;
-
-        if (!calResp.ok) {
-            return new Response(JSON.stringify({ error: freeBusyData }), { status: 500 });
+        if (!date) {
+            // No date param: return all booked date+time pairs for the next 14 days
+            const { results } = await env.DB.prepare(
+                "SELECT date, time FROM bookings WHERE status IN ('pending','confirmed') AND date >= date('now') ORDER BY date, time"
+            ).all();
+            return new Response(JSON.stringify({ booked: results }), {
+                headers: { 'Content-Type': 'application/json' }
+            });
         }
 
-        const busySlots = freeBusyData.calendars[env.GOOGLE_CALENDAR_ID]?.busy || [];
+        const { results } = await env.DB.prepare(
+            "SELECT time FROM bookings WHERE date = ? AND status IN ('pending','confirmed')"
+        ).bind(date).all();
 
-        // Return the raw busy slots back to the frontend to calculate the open UI blocks
-        return new Response(JSON.stringify({
-            status: "success",
-            timeMin: start,
-            timeMax: end,
-            busy: busySlots
-        }), {
+        const bookedTimes = results.map((r: any) => r.time);
+
+        return new Response(JSON.stringify({ date, bookedTimes }), {
             headers: { 'Content-Type': 'application/json' }
         });
-
     } catch (e: any) {
-        return new Response(JSON.stringify({ error: e.message }), { status: 500 });
+        // Fallback: return empty (no block) so the UI still works if table doesn't exist yet
+        return new Response(JSON.stringify({ booked: [], bookedTimes: [] }), {
+            headers: { 'Content-Type': 'application/json' }
+        });
     }
 }

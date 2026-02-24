@@ -7,6 +7,12 @@ const DAILY_SLOTS = ["09:00 AM", "01:00 PM"];
 export default function CalendarPicker() {
     const [step, setStep] = useState(1);
 
+    const [bookedSlots, setBookedSlots] = useState<{ date: string; time: string }[]>([]);
+
+    useEffect(() => {
+        fetchAvailability();
+    }, []);
+
     const [availableDates, setAvailableDates] = useState<{ date: string, slots: string[] }[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -16,75 +22,29 @@ export default function CalendarPicker() {
     const [formData, setFormData] = useState({ name: '', phone: '', email: '', service: 'Knotless Braids' });
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [success, setSuccess] = useState(false);
-
-    useEffect(() => {
-        fetchAvailability();
-    }, []);
+    const [bookingError, setBookingError] = useState('');
 
     const fetchAvailability = async () => {
         try {
-            // Note: in local dev this might 500 without valid keys if running `npm run dev`.
-            // Adding a graceful fallback for local development UI testing.
-            const resp = await fetch('/api/availability');
-
-            // Build the next 14 days
+            // Fetch all booked slots for the next 14 days from D1
+            const resp = await fetch('/api/availability', { cache: 'no-store' });
+            if (resp.ok) {
+                const data = await resp.json();
+                setBookedSlots(data.booked || []);
+            }
+        } catch (e) {
+            // Silently fallback — all slots appear available
+        } finally {
+            // Build the next 14 days regardless
             const targetDates: { date: string, slots: string[] }[] = [];
             for (let i = 1; i <= 14; i++) {
                 const d = new Date();
                 d.setDate(d.getDate() + i);
-                // Skip Sundays (0)
-                if (d.getDay() !== 0) {
+                if (d.getDay() !== 0) { // Skip Sundays
                     targetDates.push({ date: d.toISOString(), slots: DAILY_SLOTS });
                 }
             }
-
-            if (resp.ok) {
-                const data = await resp.json();
-                const busyBlocks = data.busy || [];
-
-                // Advanced logic to filter DAILY_SLOTS using busyBlocks
-                for (let tgt of targetDates) {
-                    const validSlots = [];
-                    for (let slot of tgt.slots) {
-                        const baseDate = new Date(tgt.date);
-                        const isAfternoon = slot.includes("PM") && !slot.startsWith("12");
-                        const hours = parseInt(slot.split(":")[0]) + (isAfternoon ? 12 : 0);
-                        baseDate.setHours(hours, 0, 0, 0);
-
-                        const slotStart = baseDate.getTime();
-                        const slotEnd = slotStart + (4 * 60 * 60 * 1000); // Assume 4 hrs per booking
-
-                        // Check overlap
-                        const isOverlapping = busyBlocks.some((b: any) => {
-                            const bStart = new Date(b.start).getTime();
-                            const bEnd = new Date(b.end).getTime();
-                            return (slotStart < bEnd && slotEnd > bStart);
-                        });
-
-                        if (!isOverlapping) {
-                            validSlots.push(slot);
-                        }
-                    }
-                    tgt.slots = validSlots;
-                }
-
-                // Only show dates that have at least one valid slot
-                setAvailableDates(targetDates.filter((d) => d.slots.length > 0));
-            } else {
-                // Network missing/blocked - render UI fallback
-                setAvailableDates(targetDates);
-            }
-        } catch (e) {
-            console.error(e);
-            // Render UI fallback if fetch fails (e.g., local dev)
-            const targetDates: { date: string, slots: string[] }[] = [];
-            for (let i = 1; i <= 14; i++) {
-                const d = new Date();
-                d.setDate(d.getDate() + i);
-                if (d.getDay() !== 0) targetDates.push({ date: d.toISOString(), slots: DAILY_SLOTS });
-            }
             setAvailableDates(targetDates);
-        } finally {
             setLoading(false);
         }
     };
@@ -92,9 +52,9 @@ export default function CalendarPicker() {
     const handleBook = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsSubmitting(true);
+        setBookingError('');
 
         try {
-            // Convert '09:00 AM' strings into actual ISO date times based on selectedDateStamp
             const baseDate = new Date(selectedDateStamp);
             const isAfternoon = selectedSlot.includes("PM") && !selectedSlot.startsWith("12");
             const hours = parseInt(selectedSlot.split(":")[0]) + (isAfternoon ? 12 : 0);
@@ -106,7 +66,7 @@ export default function CalendarPicker() {
                 clientEmail: formData.email,
                 serviceName: formData.service,
                 startTime: baseDate.toISOString(),
-                durationHours: 4 // default average
+                durationHours: 4
             };
 
             const resp = await fetch('/api/book', {
@@ -117,14 +77,15 @@ export default function CalendarPicker() {
 
             if (resp.ok) {
                 setSuccess(true);
+                fetchAvailability(); // refresh booked slots
+            } else if (resp.status === 409) {
+                const err = await resp.json();
+                setBookingError(err.error || 'This slot is already taken.');
             } else {
-                // In local dev without keys this will fail. We'll simulate success for UI purposes if it fails due to misconfiguration.
-                console.warn('Backend rejected booking, likely missing Google Keys. Simulating success for UI demo.');
-                setSuccess(true);
+                setBookingError('Something went wrong. Please try again.');
             }
         } catch (e) {
-            console.error(e);
-            setSuccess(true);
+            setBookingError('Could not connect. Please try again.');
         } finally {
             setIsSubmitting(false);
         }
@@ -194,17 +155,28 @@ export default function CalendarPicker() {
                                     <label className="text-sm font-bold text-neutral-400 block mb-3 uppercase tracking-wider">2. Select a Time</label>
                                     <div className="grid grid-cols-2 gap-3">
                                         {DAILY_SLOTS.map((slot, idx) => {
+                                            const dateStr = new Date(selectedDateStamp).toISOString().split('T')[0];
+                                            const isTaken = bookedSlots.some(
+                                                (b: any) => b.date === dateStr && b.time === slot
+                                            );
                                             const isSelected = selectedSlot === slot;
                                             return (
                                                 <button
                                                     key={idx}
-                                                    onClick={() => setSelectedSlot(slot)}
-                                                    className={`p-3 flex items-center justify-center gap-2 rounded-xl border font-mono transition-all ${isSelected ? 'border-amber-500 bg-amber-500 text-black font-bold' : 'border-neutral-800 bg-neutral-900/50 text-neutral-400 hover:border-neutral-600 hover:text-white'}`}
+                                                    onClick={() => !isTaken && setSelectedSlot(slot)}
+                                                    disabled={isTaken}
+                                                    className={`p-3 flex items-center justify-center gap-2 rounded-xl border font-mono transition-all ${isTaken
+                                                            ? 'border-neutral-800 bg-neutral-900/30 text-neutral-600 cursor-not-allowed line-through'
+                                                            : isSelected
+                                                                ? 'border-amber-500 bg-amber-500 text-black font-bold'
+                                                                : 'border-neutral-800 bg-neutral-900/50 text-neutral-400 hover:border-neutral-600 hover:text-white'
+                                                        }`}
                                                 >
                                                     <Clock className="w-4 h-4" />
                                                     {slot}
+                                                    {isTaken && <span className="text-xs ml-1 text-red-500">Taken</span>}
                                                 </button>
-                                            )
+                                            );
                                         })}
                                     </div>
                                 </div>
@@ -260,9 +232,12 @@ export default function CalendarPicker() {
                                     Back
                                 </button>
                                 <button type="submit" disabled={isSubmitting} className="flex-grow flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-400 text-black disabled:bg-amber-500/50 font-bold py-4 rounded-xl transition-all shadow-[0_0_20px_rgba(245,158,11,0.2)]">
-                                    {isSubmitting ? 'Syncing...' : 'Request Slot'}
+                                    {isSubmitting ? 'Sending...' : 'Request Slot'}
                                 </button>
                             </div>
+                            {bookingError && (
+                                <p className="mt-3 text-center text-red-400 text-sm font-bold">{bookingError}</p>
+                            )}
                         </form>
                     )}
                 </div>
