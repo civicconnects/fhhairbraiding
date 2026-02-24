@@ -14,7 +14,9 @@ export async function onRequestPost(context: any) {
     try {
         const formData = await request.formData();
         const file = formData.get("file") as File;
-        const serviceId = formData.get("serviceId");
+        const serviceId = formData.get("serviceId") as string;
+        const serviceSlug = formData.get("serviceSlug") as string;
+        const section = (formData.get("section") as string) || "signature";
 
         if (!file) {
             return new Response(JSON.stringify({ error: "No file provided" }), {
@@ -23,19 +25,38 @@ export async function onRequestPost(context: any) {
             });
         }
 
-        const fileName = `${Date.now()}-${file.name}`;
-        await env.BUCKET.put(fileName, file.stream());
+        if (!serviceId || !serviceSlug) {
+            return new Response(JSON.stringify({ error: "serviceId and serviceSlug are required" }), {
+                status: 400,
+                headers: { "Content-Type": "application/json" }
+            });
+        }
 
-        // Build the CDN public URL for the bucket
+        // Unique timestamped filename to prevent overwrites
+        const ext = file.name.split('.').pop();
+        const baseName = serviceSlug.replace(/[^a-z0-9-]/gi, '-');
+        const fileName = `${baseName}-${Date.now()}.${ext}`;
+
+        await env.BUCKET.put(fileName, file.stream(), {
+            httpMetadata: { contentType: file.type }
+        });
+
         const newImageUrl = `https://images.fhhairbraiding.com/${fileName}`;
 
-        if (serviceId) {
+        // Insert into gallery_images table (section-aware, multi-image per service)
+        await env.DB.prepare(
+            "INSERT INTO gallery_images (service_id, service_slug, image_url, section) VALUES (?, ?, ?, ?)"
+        ).bind(serviceId, serviceSlug, newImageUrl, section).run();
+
+        // Also update main image_url on services table if section is 'signature'
+        if (section === "signature") {
             await env.DB.prepare(
                 "UPDATE services SET image_url = ? WHERE id = ?"
             ).bind(newImageUrl, serviceId).run();
         }
 
-        return new Response(JSON.stringify({ url: newImageUrl }), {
+        return new Response(JSON.stringify({ url: newImageUrl, section, fileName }), {
+            status: 200,
             headers: { "Content-Type": "application/json" }
         });
     } catch (e: any) {

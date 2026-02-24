@@ -9,6 +9,7 @@ const Admin = () => {
 
     // Gallery Manager State
     const [selectedCategory, setSelectedCategory] = useState('');
+    const [selectedSection, setSelectedSection] = useState<'signature' | 'portfolio'>('signature');
     const [altText, setAltText] = useState('');
     const [uploadFile, setUploadFile] = useState<File | null>(null);
 
@@ -53,10 +54,15 @@ const Admin = () => {
         if (!selectedCategory) return alert("Please select a target service category.");
         if (!altText) return alert("Please provide SEO alt-text for the image.");
 
+        // Find the selected service's slug
+        const selectedService = services.find((s: any) => s.id === selectedCategory);
+        const serviceSlug = selectedService?.slug || selectedCategory;
+
         const formData = new FormData();
         formData.append("file", uploadFile);
         formData.append("serviceId", selectedCategory);
-        // Normally we'd also pass altText if the backend accepted it
+        formData.append("serviceSlug", serviceSlug);
+        formData.append("section", selectedSection);
 
         try {
             // Send to Pages Function (same domain — no CORS issues)
@@ -75,7 +81,7 @@ const Admin = () => {
 
             const data = await response.json();
 
-            alert(`Success! Image uploaded to R2 and mapped to the service. New URL: ${data.url}`);
+            alert(`✅ Success! Uploaded to '${data.section}' section.\nFile: ${data.fileName}\nURL: ${data.url}`);
             setAltText('');
             setUploadFile(null);
         } catch (error: any) {
@@ -199,6 +205,20 @@ const Admin = () => {
                                 <div className="space-y-2">
                                     <label className="text-sm font-bold text-neutral-400">SEO Alt-Text (Required)</label>
                                     <input type="text" value={altText} onChange={(e) => setAltText(e.target.value)} placeholder="e.g. Medium Jumbo Knotless Braids Radcliff KY" className="w-full bg-black border border-neutral-800 rounded-xl p-4 focus:ring-1 focus:ring-amber-500 outline-none" required />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-sm font-bold text-neutral-400">Display Section</label>
+                                    <select
+                                        title="Select section"
+                                        aria-label="Select Section"
+                                        value={selectedSection}
+                                        onChange={(e) => setSelectedSection(e.target.value as 'signature' | 'portfolio')}
+                                        className="w-full bg-black border border-neutral-800 rounded-xl p-4 focus:ring-1 focus:ring-amber-500 outline-none"
+                                    >
+                                        <option value="signature">✨ Signature Crowns (Homepage)</option>
+                                        <option value="portfolio">🖼️ Live Portfolio (Gallery Page)</option>
+                                    </select>
                                 </div>
 
                                 <div className="space-y-2">

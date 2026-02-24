@@ -66,6 +66,8 @@ export default {
                 const formData = await request.formData();
                 const file = formData.get("file");
                 const serviceId = formData.get("serviceId");
+                const serviceSlug = formData.get("serviceSlug") || serviceId;
+                const section = formData.get("section") || "signature";
 
                 if (!file) {
                     return new Response(JSON.stringify({ error: "No file provided" }), {
@@ -73,16 +75,28 @@ export default {
                     });
                 }
 
-                const fileName = `${Date.now()}-${file.name}`;
-                await env.BUCKET.put(fileName, file.stream());
+                // Unique timestamped filename to prevent overwrites
+                const ext = file.name.split('.').pop();
+                const baseName = String(serviceSlug).replace(/[^a-z0-9-]/gi, '-').toLowerCase();
+                const fileName = `${baseName}-${Date.now()}.${ext}`;
+
+                await env.BUCKET.put(fileName, file.stream(), {
+                    httpMetadata: { contentType: file.type }
+                });
                 const newImageUrl = `https://images.fhhairbraiding.com/${fileName}`;
 
-                if (serviceId) {
+                // Insert into gallery_images table (supports multiple images per service x section)
+                await env.DB.prepare(
+                    "INSERT INTO gallery_images (service_id, service_slug, image_url, section) VALUES (?, ?, ?, ?)"
+                ).bind(serviceId, serviceSlug, newImageUrl, section).run();
+
+                // Update main image_url on services only for 'signature' uploads
+                if (section === "signature" && serviceId) {
                     await env.DB.prepare("UPDATE services SET image_url = ? WHERE id = ?")
                         .bind(newImageUrl, serviceId).run();
                 }
 
-                return new Response(JSON.stringify({ url: newImageUrl }), {
+                return new Response(JSON.stringify({ url: newImageUrl, section, fileName }), {
                     status: 200, headers: corsHeaders
                 });
             } catch (e) {
@@ -91,6 +105,7 @@ export default {
                 });
             }
         }
+
 
         // ── Serve static assets for all other routes ─────────────────────────
         return env.ASSETS.fetch(request);

@@ -1,9 +1,21 @@
 -- D1 Database Schema for F&H Hair Braiding
 DROP TABLE IF EXISTS appointments;
 DROP TABLE IF EXISTS availability_slots;
+DROP TABLE IF EXISTS gallery_images;
 DROP TABLE IF EXISTS services;
 DROP TABLE IF EXISTS users;
 DROP TABLE IF EXISTS bookings;
+CREATE TABLE gallery_images (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    service_id TEXT NOT NULL,
+    -- e.g. 'srv_1'
+    service_slug TEXT NOT NULL,
+    -- e.g. 'box-braids'
+    image_url TEXT NOT NULL,
+    -- https://images.fhhairbraiding.com/...
+    section TEXT NOT NULL DEFAULT 'signature' CHECK(section IN ('signature', 'portfolio')),
+    uploaded_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
 CREATE TABLE services (
     id TEXT PRIMARY KEY,
     slug TEXT UNIQUE NOT NULL,
