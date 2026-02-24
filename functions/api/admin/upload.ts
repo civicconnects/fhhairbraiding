@@ -27,7 +27,7 @@ export async function onRequestPost(context: any) {
         await env.BUCKET.put(fileName, file.stream());
 
         // Build the CDN public URL for the bucket
-        const newImageUrl = `https://pub-${env.R2_PUBLIC_ID || "your-id"}.r2.dev/${fileName}`;
+        const newImageUrl = `https://images.fhhairbraiding.com/${fileName}`;
 
         if (serviceId) {
             await env.DB.prepare(

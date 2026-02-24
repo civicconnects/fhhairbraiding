@@ -75,7 +75,7 @@ export default {
 
                 const fileName = `${Date.now()}-${file.name}`;
                 await env.BUCKET.put(fileName, file.stream());
-                const newImageUrl = `https://fh-braids-images.r2.dev/${fileName}`;
+                const newImageUrl = `https://images.fhhairbraiding.com/${fileName}`;
 
                 if (serviceId) {
                     await env.DB.prepare("UPDATE services SET image_url = ? WHERE id = ?")
