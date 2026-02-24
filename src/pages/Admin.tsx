@@ -8,7 +8,7 @@ const Admin = () => {
     const [activeTab, setActiveTab] = useState('gallery');
 
     // Gallery Manager State
-    const [selectedCategory, setSelectedCategory] = useState('Knotless');
+    const [selectedCategory, setSelectedCategory] = useState('');
     const [altText, setAltText] = useState('');
     const [uploadFile, setUploadFile] = useState<File | null>(null);
 
@@ -24,18 +24,26 @@ const Admin = () => {
         fetch('/api/services')
             .then(res => res.json())
             .then(data => {
-                if (data && Array.isArray(data)) {
+                if (data && Array.isArray(data) && data.length > 0) {
                     setServices(data);
+                    // Auto-select the first service slug in Silo Editor
+                    setSelectedSilo(data[0].slug);
                 } else {
                     fetch('/src/content/services.json')
                         .then(res => res.json())
-                        .then(localData => setServices(localData));
+                        .then(localData => {
+                            setServices(localData);
+                            if (localData.length > 0) setSelectedSilo(localData[0].slug);
+                        });
                 }
             })
             .catch(() => {
                 fetch('/src/content/services.json')
                     .then(res => res.json())
-                    .then(data => setServices(data));
+                    .then(data => {
+                        setServices(data);
+                        if (data.length > 0) setSelectedSilo(data[0].slug);
+                    });
             });
     }, []);
 
