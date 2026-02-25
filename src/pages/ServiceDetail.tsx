@@ -110,8 +110,8 @@ export default function ServiceDetail() {
                     <p className="text-xl text-neutral-400 font-light mb-10">
                         Contact us to verify schedule openings. Immediate response guaranteed.
                     </p>
-                    <a href="tel:+15551234567" className="inline-flex items-center justify-center gap-3 px-10 py-5 text-lg font-bold text-black transition-all bg-amber-500 hover:bg-white rounded-xl shadow-[0_0_30px_-5px_rgba(245,158,11,0.4)]">
-                        Inquire About Availability
+                    <a href="https://wa.me/15026442754?text=Hi%2C%20I%27d%20like%20to%20book%20an%20appointment!" target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center gap-3 px-10 py-5 text-lg font-bold text-black transition-all bg-amber-500 hover:bg-white rounded-xl shadow-[0_0_30px_-5px_rgba(245,158,11,0.4)]">
+                        💬 Book via WhatsApp / Text
                     </a>
                 </div>
             </div>

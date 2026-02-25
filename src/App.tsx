@@ -29,9 +29,9 @@ const App = () => {
 
         {/* Sticky Mobile Footer */}
         <div className="fixed bottom-0 left-0 right-0 z-50 bg-neutral-950/90 backdrop-blur-lg border-t border-neutral-800 p-4 md:hidden pb-safe">
-          <a href="tel:+15026442754" className="flex items-center justify-center w-full bg-amber-500 hover:bg-white text-black font-bold py-4 px-6 rounded-xl shadow-[0_0_30px_-5px_rgba(245,158,11,0.4)] transition-colors gap-2">
+          <a href="https://wa.me/15026442754?text=Hi%2C%20I%27d%20like%20to%20book%20an%20appointment%20at%20F%26H%20Hair%20Braiding!" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center w-full bg-amber-500 hover:bg-white text-black font-bold py-4 px-6 rounded-xl shadow-[0_0_30px_-5px_rgba(245,158,11,0.4)] transition-colors gap-2">
             <CalendarIcon className="w-5 h-5" />
-            Call/Text to Inquire
+            💬 Book via WhatsApp
           </a>
         </div>
       </div>
@@ -52,7 +52,9 @@ const Home = () => (
     <SignatureGallery />
     <TransformationSlider />
     <ScientificWhy />
-    <ContactHub />
+    <div id="booking-form" className="scroll-mt-20">
+      <ContactHub />
+    </div>
 
     <section className="w-full max-w-4xl mx-auto px-6 py-24 mb-10 md:mb-0 bg-black">
       <CrownClub />

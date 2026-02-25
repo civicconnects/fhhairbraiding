@@ -36,11 +36,11 @@ const Hero = () => {
                 </p>
 
                 <div className="flex flex-col sm:flex-row gap-6 items-center sm:items-start pt-4">
-                    <button className="group relative inline-flex items-center justify-center gap-3 px-10 py-5 text-lg font-bold text-black transition-all bg-amber-500 hover:bg-white shadow-[0_0_40px_-10px_rgba(217,119,6,0.3)] w-full sm:w-auto">
+                    <a href="#booking-form" className="group relative inline-flex items-center justify-center gap-3 px-10 py-5 text-lg font-bold text-black transition-all bg-amber-500 hover:bg-white shadow-[0_0_40px_-10px_rgba(217,119,6,0.3)] w-full sm:w-auto">
                         <CalendarIcon className="w-5 h-5 group-hover:scale-110 transition-transform" />
                         Check Studio Availability
                         <Sparkles className="absolute right-4 w-4 h-4 opacity-0 group-hover:opacity-100 group-hover:animate-ping text-amber-600" />
-                    </button>
+                    </a>
 
                     {/* Social Proof Avatar Group */}
                     <div className="flex items-center gap-4 text-neutral-300 text-sm h-full pt-2 sm:pt-0">
