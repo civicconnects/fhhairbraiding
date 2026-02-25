@@ -132,6 +132,118 @@ export default {
         }
 
 
+        // ── GET /api/availability ────────────────────────────────────────────
+        // Returns all booked date+time pairs so CalendarPicker can mark slots as taken
+        if (url.pathname === "/api/availability" && request.method === "GET") {
+            try {
+                const date = url.searchParams.get("date");
+                let results;
+                if (date) {
+                    ({ results } = await env.DB.prepare(
+                        "SELECT time FROM bookings WHERE date = ? AND status IN ('pending','confirmed')"
+                    ).bind(date).all());
+                    return new Response(JSON.stringify({ date, bookedTimes: results.map(r => r.time) }), {
+                        status: 200, headers: corsHeaders
+                    });
+                } else {
+                    ({ results } = await env.DB.prepare(
+                        "SELECT date, time FROM bookings WHERE status IN ('pending','confirmed') AND date >= date('now') ORDER BY date, time"
+                    ).all());
+                    return new Response(JSON.stringify({ booked: results }), {
+                        status: 200, headers: corsHeaders
+                    });
+                }
+            } catch (e) {
+                return new Response(JSON.stringify({ booked: [], bookedTimes: [] }), {
+                    status: 200, headers: corsHeaders
+                });
+            }
+        }
+
+        // ── POST /api/book ───────────────────────────────────────────────────
+        // Public booking endpoint — conflict-checks then inserts into bookings table
+        if (url.pathname === "/api/book" && request.method === "POST") {
+            try {
+                const body = await request.json();
+                const { clientName, clientPhone, clientEmail, serviceName, startTime } = body;
+
+                if (!clientName || !clientPhone || !serviceName || !startTime) {
+                    return new Response(JSON.stringify({ error: "Missing required fields." }), {
+                        status: 400, headers: corsHeaders
+                    });
+                }
+
+                const dt = new Date(startTime);
+                const date = dt.toISOString().split('T')[0];
+                const time = dt.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+
+                // Conflict check
+                const { results: conflicts } = await env.DB.prepare(
+                    "SELECT id FROM bookings WHERE date = ? AND time = ? AND status IN ('pending','confirmed')"
+                ).bind(date, time).all();
+
+                if (conflicts.length > 0) {
+                    return new Response(JSON.stringify({ error: "This time slot is already taken. Please choose another time." }), {
+                        status: 409, headers: corsHeaders
+                    });
+                }
+
+                await env.DB.prepare(
+                    "INSERT INTO bookings (customer_name, phone, email, service_type, date, time, status) VALUES (?, ?, ?, ?, ?, ?, 'pending')"
+                ).bind(clientName, clientPhone, clientEmail || '', serviceName, date, time).run();
+
+                return new Response(JSON.stringify({ status: "success", message: "Booking request received! Monica will confirm shortly." }), {
+                    status: 201, headers: corsHeaders
+                });
+            } catch (e) {
+                return new Response(JSON.stringify({ error: e.message }), {
+                    status: 500, headers: corsHeaders
+                });
+            }
+        }
+
+        // ── GET /api/bookings (admin) ─────────────────────────────────────────
+        if (url.pathname === "/api/bookings" && request.method === "GET") {
+            const adminKey = request.headers.get("X-Admin-Key");
+            if (!adminKey || adminKey !== env.ADMIN_PASSWORD) {
+                return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
+            }
+            try {
+                const status = url.searchParams.get("status");
+                let results;
+                if (status) {
+                    ({ results } = await env.DB.prepare(
+                        "SELECT * FROM bookings WHERE status = ? ORDER BY date ASC, time ASC"
+                    ).bind(status).all());
+                } else {
+                    ({ results } = await env.DB.prepare(
+                        "SELECT * FROM bookings ORDER BY date ASC, time ASC"
+                    ).all());
+                }
+                return new Response(JSON.stringify(results), { status: 200, headers: corsHeaders });
+            } catch (e) {
+                return new Response(JSON.stringify({ error: e.message }), { status: 500, headers: corsHeaders });
+            }
+        }
+
+        // ── PATCH /api/bookings (admin) ───────────────────────────────────────
+        if (url.pathname === "/api/bookings" && request.method === "PATCH") {
+            const adminKey = request.headers.get("X-Admin-Key");
+            if (!adminKey || adminKey !== env.ADMIN_PASSWORD) {
+                return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
+            }
+            try {
+                const { id, status } = await request.json();
+                if (!id || !['pending', 'confirmed', 'cancelled'].includes(status)) {
+                    return new Response(JSON.stringify({ error: "Invalid id or status" }), { status: 400, headers: corsHeaders });
+                }
+                await env.DB.prepare("UPDATE bookings SET status = ? WHERE id = ?").bind(status, id).run();
+                return new Response(JSON.stringify({ success: true }), { status: 200, headers: corsHeaders });
+            } catch (e) {
+                return new Response(JSON.stringify({ error: e.message }), { status: 500, headers: corsHeaders });
+            }
+        }
+
         // ── Serve static assets for all other routes ─────────────────────────
         return env.ASSETS.fetch(request);
     }

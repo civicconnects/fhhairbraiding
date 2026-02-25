@@ -82,7 +82,7 @@ export default function CalendarPicker() {
                 const err = await resp.json();
                 setBookingError(err.error || 'This slot is already taken.');
             } else {
-                setBookingError('Something went wrong. Please try again.');
+                setBookingError('fail');
             }
         } catch (e) {
             setBookingError('Could not connect. Please try again.');
@@ -166,10 +166,10 @@ export default function CalendarPicker() {
                                                     onClick={() => !isTaken && setSelectedSlot(slot)}
                                                     disabled={isTaken}
                                                     className={`p-3 flex items-center justify-center gap-2 rounded-xl border font-mono transition-all ${isTaken
-                                                            ? 'border-neutral-800 bg-neutral-900/30 text-neutral-600 cursor-not-allowed line-through'
-                                                            : isSelected
-                                                                ? 'border-amber-500 bg-amber-500 text-black font-bold'
-                                                                : 'border-neutral-800 bg-neutral-900/50 text-neutral-400 hover:border-neutral-600 hover:text-white'
+                                                        ? 'border-neutral-800 bg-neutral-900/30 text-neutral-600 cursor-not-allowed line-through'
+                                                        : isSelected
+                                                            ? 'border-amber-500 bg-amber-500 text-black font-bold'
+                                                            : 'border-neutral-800 bg-neutral-900/50 text-neutral-400 hover:border-neutral-600 hover:text-white'
                                                         }`}
                                                 >
                                                     <Clock className="w-4 h-4" />
@@ -236,7 +236,20 @@ export default function CalendarPicker() {
                                 </button>
                             </div>
                             {bookingError && (
-                                <p className="mt-3 text-center text-red-400 text-sm font-bold">{bookingError}</p>
+                                <div className="mt-3 text-center">
+                                    {bookingError === 'fail' ? (
+                                        <a
+                                            href="https://wa.me/15026442754?text=Hi%2C%20I%27d%20like%20to%20book%20an%20appointment!"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="inline-flex items-center gap-2 mt-2 px-6 py-3 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-xl text-sm transition-all"
+                                        >
+                                            💬 Text Us to Book: (502) 644-2754
+                                        </a>
+                                    ) : (
+                                        <p className="text-red-400 text-sm font-bold">{bookingError}</p>
+                                    )}
+                                </div>
                             )}
                         </form>
                     )}
