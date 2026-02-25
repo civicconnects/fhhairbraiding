@@ -100,11 +100,11 @@ export default {
                 let results;
                 if (section === "signature" || section === "portfolio") {
                     ({ results } = await env.DB.prepare(
-                        "SELECT id, service_id, service_slug, image_url, section, uploaded_at FROM gallery_images WHERE section = ? ORDER BY uploaded_at DESC"
+                        "SELECT id, service_id, service_slug, image_url, section, uploaded_at FROM gallery_images WHERE section = ? AND visible = 1 ORDER BY uploaded_at DESC"
                     ).bind(section).all());
                 } else {
                     ({ results } = await env.DB.prepare(
-                        "SELECT id, service_id, service_slug, image_url, section, uploaded_at FROM gallery_images ORDER BY uploaded_at DESC"
+                        "SELECT id, service_id, service_slug, image_url, section, uploaded_at FROM gallery_images WHERE visible = 1 ORDER BY uploaded_at DESC"
                     ).all());
                 }
                 return new Response(JSON.stringify(results), {

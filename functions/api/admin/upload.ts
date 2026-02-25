@@ -1,10 +1,24 @@
 export async function onRequestPost(context: any) {
     const { env, request } = context;
 
+    // Accept either the legacy ADMIN_PASSWORD or a valid session token (password_hash from admin_users)
     const adminKey = request.headers.get("X-Admin-Key");
-    const secretPassword = env.ADMIN_PASSWORD;
+    let authorized = false;
 
-    if (!adminKey || !secretPassword || adminKey !== secretPassword) {
+    if (adminKey) {
+        if (env.ADMIN_PASSWORD && adminKey === env.ADMIN_PASSWORD) {
+            authorized = true;
+        } else if (env.DB) {
+            try {
+                const { results } = await env.DB.prepare(
+                    "SELECT id FROM admin_users WHERE password_hash = ?"
+                ).bind(adminKey).all();
+                authorized = results.length > 0;
+            } catch (_) { }
+        }
+    }
+
+    if (!authorized) {
         return new Response(JSON.stringify({ error: "Unauthorized" }), {
             status: 401,
             headers: { "Content-Type": "application/json" }
@@ -16,7 +30,7 @@ export async function onRequestPost(context: any) {
         const file = formData.get("file") as File;
         const serviceId = formData.get("serviceId") as string;
         const serviceSlug = formData.get("serviceSlug") as string;
-        const section = (formData.get("section") as string) || "signature";
+        const section = (formData.get("section") as string) || "portfolio";
 
         if (!file) {
             return new Response(JSON.stringify({ error: "No file provided" }), {
@@ -45,7 +59,7 @@ export async function onRequestPost(context: any) {
 
         // Insert into gallery_images table (section-aware, multi-image per service)
         await env.DB.prepare(
-            "INSERT INTO gallery_images (service_id, service_slug, image_url, section) VALUES (?, ?, ?, ?)"
+            "INSERT INTO gallery_images (service_id, service_slug, image_url, section, visible) VALUES (?, ?, ?, ?, 1)"
         ).bind(serviceId, serviceSlug, newImageUrl, section).run();
 
         // Also update main image_url on services table if section is 'signature'
