@@ -455,59 +455,81 @@ const Admin = () => {
 
                         {/* Tab 5: Manage Images */}
                         {activeTab === 'images' && (
-                            <div className="space-y-6">
-                                <div className="flex justify-between items-center mb-6">
-                                    <h2 className="text-2xl font-serif font-bold">Manage Gallery Images</h2>
+                            <div className="space-y-8">
+                                <div className="flex justify-between items-center">
+                                    <div>
+                                        <h2 className="text-2xl font-serif font-bold">Manage Gallery Images</h2>
+                                        <p className="text-neutral-500 text-sm mt-1">{galleryImages.length} image{galleryImages.length !== 1 ? 's' : ''} in database</p>
+                                    </div>
                                     <button onClick={fetchGalleryImages} className="text-xs font-bold text-amber-500 hover:text-white uppercase tracking-widest transition-colors">↻ Refresh</button>
                                 </div>
+
                                 {galleryLoading ? (
                                     <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-amber-500" /></div>
                                 ) : galleryImages.length === 0 ? (
                                     <div className="py-16 text-center border border-dashed border-neutral-800 rounded-2xl">
                                         <Camera className="w-10 h-10 text-neutral-600 mx-auto mb-3" />
-                                        <p className="text-neutral-500">No images uploaded yet.</p>
+                                        <p className="text-neutral-500">No images in database yet.</p>
                                     </div>
                                 ) : (
-                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                                        {galleryImages.map((img: any) => (
-                                            <div key={img.id} className={`relative group rounded-xl overflow-hidden border ${img.visible ? 'border-neutral-800' : 'border-red-900/50 opacity-60'}`}>
-                                                <img
-                                                    src={img.image_url}
-                                                    alt={img.service_slug}
-                                                    className="w-full h-40 object-cover bg-neutral-900"
-                                                />
-                                                {/* Section badge */}
-                                                <div className="absolute top-2 left-2">
-                                                    <span className={`px-2 py-0.5 rounded-full text-xs font-bold uppercase ${img.section === 'signature' ? 'bg-amber-500/90 text-black' : 'bg-purple-600/90 text-white'}`}>
-                                                        {img.section}
+                                    (['signature', 'portfolio'] as const).map(section => {
+                                        const sectionImgs = galleryImages.filter((img: any) => img.section === section);
+                                        if (sectionImgs.length === 0) return null;
+                                        return (
+                                            <div key={section}>
+                                                {/* Section header */}
+                                                <div className="flex items-center gap-3 mb-4">
+                                                    <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest ${section === 'signature' ? 'bg-amber-500 text-black' : 'bg-purple-600 text-white'}`}>
+                                                        {section === 'signature' ? '✦ Signature Crowns' : '◈ Portfolio'}
                                                     </span>
+                                                    <span className="text-neutral-600 text-xs">{sectionImgs.length} image{sectionImgs.length !== 1 ? 's' : ''}</span>
                                                 </div>
-                                                {/* Hidden badge */}
-                                                {!img.visible && (
-                                                    <div className="absolute top-2 right-2 bg-red-600/90 text-white text-xs font-bold px-2 py-0.5 rounded-full">Hidden</div>
-                                                )}
-                                                {/* Actions */}
-                                                <div className="absolute bottom-0 left-0 right-0 p-2 bg-black/70 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                    <button
-                                                        title={img.visible ? 'Hide from site' : 'Show on site'}
-                                                        onClick={() => toggleImageVisibility(img.id, img.visible)}
-                                                        className="flex-1 flex items-center justify-center gap-1 text-xs font-bold py-2 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-white transition-all"
-                                                    >
-                                                        {img.visible ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                                                        {img.visible ? 'Hide' : 'Show'}
-                                                    </button>
-                                                    <button
-                                                        title="Delete image permanently"
-                                                        onClick={() => deleteGalleryImage(img.id)}
-                                                        className="flex items-center justify-center gap-1 text-xs font-bold px-3 py-2 rounded-lg bg-red-900/80 hover:bg-red-700 text-red-300 hover:text-white transition-all"
-                                                    >
-                                                        <Trash2 className="w-3.5 h-3.5" />
-                                                    </button>
+
+                                                {/* Image grid */}
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                                    {sectionImgs.map((img: any) => (
+                                                        <div key={img.id} className={`rounded-xl overflow-hidden border ${img.visible ? 'border-neutral-800' : 'border-red-800 opacity-70'} bg-neutral-950`}>
+                                                            {/* Image */}
+                                                            <div className="relative">
+                                                                <img
+                                                                    src={img.image_url}
+                                                                    alt={img.service_slug}
+                                                                    className="w-full h-44 object-cover bg-neutral-900"
+                                                                    onError={(e: any) => { e.target.style.display = 'none'; }}
+                                                                />
+                                                                {!img.visible && (
+                                                                    <div className="absolute inset-0 flex items-center justify-center bg-black/60">
+                                                                        <span className="px-3 py-1 bg-red-700 text-white text-xs font-bold rounded-full uppercase">Hidden</span>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+
+                                                            {/* Meta + Actions — always visible */}
+                                                            <div className="p-3 space-y-2">
+                                                                <p className="text-xs font-bold text-white truncate">{img.service_slug.replace(/-/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase())}</p>
+                                                                <p className="text-[10px] text-neutral-600 truncate">{img.image_url.split('/').pop()}</p>
+                                                                <div className="flex gap-2 pt-1">
+                                                                    <button
+                                                                        onClick={() => toggleImageVisibility(img.id, img.visible)}
+                                                                        className={`flex-1 flex items-center justify-center gap-1.5 text-xs font-bold py-2 rounded-lg transition-all ${img.visible ? 'bg-neutral-800 hover:bg-neutral-700 text-neutral-300' : 'bg-green-900/60 hover:bg-green-800 text-green-400'}`}
+                                                                    >
+                                                                        {img.visible ? <><EyeOff className="w-3.5 h-3.5" /> Hide</> : <><Eye className="w-3.5 h-3.5" /> Show</>}
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={() => deleteGalleryImage(img.id)}
+                                                                        title="Delete from D1 + R2 permanently"
+                                                                        className="flex items-center justify-center gap-1.5 text-xs font-bold px-4 py-2 rounded-lg bg-red-900/60 hover:bg-red-700 text-red-400 hover:text-white transition-all"
+                                                                    >
+                                                                        <Trash2 className="w-3.5 h-3.5" /> Delete
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    ))}
                                                 </div>
-                                                <p className="text-xs text-neutral-500 text-center py-1 truncate px-2">{img.service_slug}</p>
                                             </div>
-                                        ))}
-                                    </div>
+                                        );
+                                    })
                                 )}
                             </div>
                         )}

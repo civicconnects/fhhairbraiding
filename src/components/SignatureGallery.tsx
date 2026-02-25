@@ -26,8 +26,8 @@ export default function SignatureGallery() {
     const [categories, setCategories] = useState<string[]>(["All"]);
 
     useEffect(() => {
-        // Fetch only 'portfolio' section images from D1 gallery_images table
-        fetch('/api/gallery?section=portfolio', { cache: 'no-store' })
+        // Fetch all visible gallery images from D1 (signature + portfolio)
+        fetch('/api/gallery', { cache: 'no-store' })
             .then(res => res.json())
             .then((data: GalleryImage[]) => {
                 if (Array.isArray(data) && data.length > 0) {
