@@ -268,40 +268,58 @@ export default {
                     "INSERT INTO bookings (customer_name, phone, email, service_type, date, time, status) VALUES (?, ?, ?, ?, ?, ?, 'pending')"
                 ).bind(clientName, clientPhone, clientEmail || '', serviceName, date, time).run();
 
-                // ── Send owner email notification via Resend (if configured) ──────
-                if (env.RESEND_API_KEY && env.OWNER_EMAIL) {
+                // ── Send notification emails via Resend ─────────────────────────
+                if (env.RESEND_API_KEY) {
                     try {
-                        await fetch("https://api.resend.com/emails", {
-                            method: "POST",
-                            headers: {
-                                "Authorization": `Bearer ${env.RESEND_API_KEY}`,
-                                "Content-Type": "application/json"
-                            },
-                            body: JSON.stringify({
-                                from: "bookings@fhhairbraiding.com",
-                                to: [env.OWNER_EMAIL],
-                                subject: `📅 New Booking Request — ${serviceName} on ${date}`,
-                                html: `
-                                    <div style="font-family:sans-serif;max-width:600px;margin:auto;padding:24px;background:#111;color:#fff;border-radius:12px">
-                                        <h2 style="color:#f59e0b;margin-bottom:4px">New Booking Request</h2>
-                                        <p style="color:#aaa;margin-top:0">Submitted ${new Date().toLocaleString('en-US', { timeZone: 'America/Chicago' })}</p>
-                                        <hr style="border-color:#333;margin:16px 0"/>
-                                        <table style="width:100%;border-collapse:collapse">
-                                            <tr><td style="padding:8px 0;color:#aaa;width:120px">Name</td><td style="color:#fff;font-weight:bold">${clientName}</td></tr>
-                                            <tr><td style="padding:8px 0;color:#aaa">Phone</td><td style="color:#fff">${clientPhone}</td></tr>
-                                            <tr><td style="padding:8px 0;color:#aaa">Email</td><td style="color:#fff">${clientEmail || 'Not provided'}</td></tr>
-                                            <tr><td style="padding:8px 0;color:#aaa">Service</td><td style="color:#fff">${serviceName}</td></tr>
-                                            <tr><td style="padding:8px 0;color:#aaa">Date</td><td style="color:#f59e0b;font-weight:bold">${date}</td></tr>
-                                            <tr><td style="padding:8px 0;color:#aaa">Time</td><td style="color:#f59e0b;font-weight:bold">${time}</td></tr>
-                                        </table>
-                                        <hr style="border-color:#333;margin:24px 0"/>
-                                        <a href="https://fhhairbraiding.com/admin" style="display:inline-block;background:#f59e0b;color:#000;font-weight:bold;padding:14px 28px;border-radius:8px;text-decoration:none">
-                                            ✅ Confirm or Cancel in Admin
-                                        </a>
-                                        <p style="color:#666;font-size:12px;margin-top:16px">F&H Hair Braiding · 543 N Wilson Rd, Suite D, Radcliff KY 40160</p>
-                                    </div>`
-                            })
-                        });
+                        // Fetch all notification emails from D1
+                        let recipients = [];
+                        try {
+                            const { results: notifEmails } = await env.DB.prepare(
+                                "SELECT email FROM notification_settings ORDER BY created_at ASC"
+                            ).all();
+                            recipients = notifEmails.map(r => r.email);
+                        } catch (_) { }
+
+                        // Fallback to OWNER_EMAIL env var if table is empty
+                        if (recipients.length === 0 && env.OWNER_EMAIL) {
+                            recipients = [env.OWNER_EMAIL];
+                        }
+
+                        if (recipients.length > 0) {
+                            const emailHtml = `
+                                <div style="font-family:sans-serif;max-width:600px;margin:auto;padding:24px;background:#111;color:#fff;border-radius:12px">
+                                    <h2 style="color:#f59e0b;margin-bottom:4px">📅 New Booking Request</h2>
+                                    <p style="color:#aaa;margin-top:0">Submitted ${new Date().toLocaleString('en-US', { timeZone: 'America/Chicago' })}</p>
+                                    <hr style="border-color:#333;margin:16px 0"/>
+                                    <table style="width:100%;border-collapse:collapse">
+                                        <tr><td style="padding:8px 0;color:#aaa;width:120px">Name</td><td style="color:#fff;font-weight:bold">${clientName}</td></tr>
+                                        <tr><td style="padding:8px 0;color:#aaa">Phone</td><td style="color:#fff">${clientPhone}</td></tr>
+                                        <tr><td style="padding:8px 0;color:#aaa">Email</td><td style="color:#fff">${clientEmail || 'Not provided'}</td></tr>
+                                        <tr><td style="padding:8px 0;color:#aaa">Service</td><td style="color:#fff">${serviceName}</td></tr>
+                                        <tr><td style="padding:8px 0;color:#aaa">Date</td><td style="color:#f59e0b;font-weight:bold">${date}</td></tr>
+                                        <tr><td style="padding:8px 0;color:#aaa">Time</td><td style="color:#f59e0b;font-weight:bold">${time}</td></tr>
+                                    </table>
+                                    <hr style="border-color:#333;margin:24px 0"/>
+                                    <a href="https://fhhairbraiding.com/admin" style="display:inline-block;background:#f59e0b;color:#000;font-weight:bold;padding:14px 28px;border-radius:8px;text-decoration:none">
+                                        ✅ Confirm or Cancel in Admin
+                                    </a>
+                                    <p style="color:#666;font-size:12px;margin-top:16px">F&H Hair Braiding · 543 N Wilson Rd, Suite D, Radcliff KY 40160</p>
+                                </div>`;
+
+                            await fetch("https://api.resend.com/emails", {
+                                method: "POST",
+                                headers: {
+                                    "Authorization": `Bearer ${env.RESEND_API_KEY}`,
+                                    "Content-Type": "application/json"
+                                },
+                                body: JSON.stringify({
+                                    from: "bookings@fhhairbraiding.com",
+                                    to: recipients,
+                                    subject: `📅 New Booking — ${serviceName} on ${date} at ${time}`,
+                                    html: emailHtml
+                                })
+                            });
+                        }
                     } catch (_) { /* Email is optional — booking already saved */ }
                 }
 
@@ -312,6 +330,57 @@ export default {
                 return new Response(JSON.stringify({ error: e.message }), {
                     status: 500, headers: corsHeaders
                 });
+            }
+        }
+
+        // ── GET /api/notifications (admin) ────────────────────────────────────
+        if (url.pathname === "/api/notifications" && request.method === "GET") {
+            const adminKey = request.headers.get("X-Admin-Key");
+            if (!adminKey || adminKey !== env.ADMIN_PASSWORD) {
+                return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
+            }
+            try {
+                const { results } = await env.DB.prepare(
+                    "SELECT id, email, label, created_at FROM notification_settings ORDER BY created_at ASC"
+                ).all();
+                return new Response(JSON.stringify(results), { status: 200, headers: corsHeaders });
+            } catch (e) {
+                return new Response(JSON.stringify({ error: e.message }), { status: 500, headers: corsHeaders });
+            }
+        }
+
+        // ── POST /api/notifications (admin) ───────────────────────────────────
+        if (url.pathname === "/api/notifications" && request.method === "POST") {
+            const adminKey = request.headers.get("X-Admin-Key");
+            if (!adminKey || adminKey !== env.ADMIN_PASSWORD) {
+                return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
+            }
+            try {
+                const { email, label } = await request.json();
+                if (!email || !email.includes("@")) {
+                    return new Response(JSON.stringify({ error: "Valid email required." }), { status: 400, headers: corsHeaders });
+                }
+                await env.DB.prepare(
+                    "INSERT OR IGNORE INTO notification_settings (email, label) VALUES (?, ?)"
+                ).bind(email.toLowerCase().trim(), label || null).run();
+                return new Response(JSON.stringify({ success: true }), { status: 201, headers: corsHeaders });
+            } catch (e) {
+                return new Response(JSON.stringify({ error: e.message }), { status: 500, headers: corsHeaders });
+            }
+        }
+
+        // ── DELETE /api/notifications (admin) ─────────────────────────────────
+        if (url.pathname === "/api/notifications" && request.method === "DELETE") {
+            const adminKey = request.headers.get("X-Admin-Key");
+            if (!adminKey || adminKey !== env.ADMIN_PASSWORD) {
+                return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
+            }
+            try {
+                const { id } = await request.json();
+                await env.DB.prepare("DELETE FROM notification_settings WHERE id = ?").bind(id).run();
+                return new Response(JSON.stringify({ success: true }), { status: 200, headers: corsHeaders });
+            } catch (e) {
+                return new Response(JSON.stringify({ error: e.message }), { status: 500, headers: corsHeaders });
             }
         }
 

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Camera, Type, Clock, ShieldCheck, LogOut, CheckCircle2, CalendarDays, Eye, EyeOff, Trash2 } from 'lucide-react';
+import { Camera, Type, Clock, ShieldCheck, LogOut, CheckCircle2, CalendarDays, Eye, EyeOff, Trash2, Bell } from 'lucide-react';
 
 const Admin = () => {
     const [services, setServices] = useState<any[]>([]);
@@ -25,6 +25,12 @@ const Admin = () => {
     // Gallery Images State
     const [galleryImages, setGalleryImages] = useState<any[]>([]);
     const [galleryLoading, setGalleryLoading] = useState(false);
+
+    // Notification Settings State
+    const [notifEmails, setNotifEmails] = useState<any[]>([]);
+    const [notifNewEmail, setNotifNewEmail] = useState('');
+    const [notifNewLabel, setNotifNewLabel] = useState('');
+    const [notifLoading, setNotifLoading] = useState(false);
 
     // Availability State
     const [availabilityStatus, setAvailabilityStatus] = useState('Limited availability remaining. Contact immediately to secure a slot for this Friday or Saturday.');
@@ -160,6 +166,41 @@ const Admin = () => {
         setGalleryImages(prev => prev.filter(img => img.id !== id));
     };
 
+    const fetchNotifEmails = async () => {
+        setNotifLoading(true);
+        try {
+            const res = await fetch('/api/notifications', { headers: { 'X-Admin-Key': password } });
+            if (res.ok) setNotifEmails(await res.json());
+        } catch (_) { }
+        finally { setNotifLoading(false); }
+    };
+
+    const addNotifEmail = async (e: any) => {
+        e.preventDefault();
+        if (!notifNewEmail) return;
+        const res = await fetch('/api/notifications', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-Admin-Key': password },
+            body: JSON.stringify({ email: notifNewEmail, label: notifNewLabel })
+        });
+        if (res.ok) {
+            setNotifNewEmail(''); setNotifNewLabel('');
+            fetchNotifEmails();
+        } else {
+            const err = await res.json();
+            alert(err.error || 'Failed to add email.');
+        }
+    };
+
+    const deleteNotifEmail = async (id: number) => {
+        await fetch('/api/notifications', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json', 'X-Admin-Key': password },
+            body: JSON.stringify({ id })
+        });
+        setNotifEmails(prev => prev.filter(e => e.id !== id));
+    };
+
     if (!isLoggedIn) {
         return (
             <div className="p-10 bg-black min-h-screen flex flex-col items-center justify-center text-white">
@@ -263,6 +304,10 @@ const Admin = () => {
                         <button onClick={() => { setActiveTab('images'); fetchGalleryImages(); }} className={`flex items-center gap-3 p-4 rounded-xl text-sm font-bold transition-all ${activeTab === 'images' ? 'bg-amber-500 text-black' : 'bg-neutral-900 text-neutral-400 hover:bg-neutral-800 hover:text-white'}`}>
                             <Eye className="w-5 h-5" />
                             Manage Images
+                        </button>
+                        <button onClick={() => { setActiveTab('notifications'); fetchNotifEmails(); }} className={`flex items-center gap-3 p-4 rounded-xl text-sm font-bold transition-all ${activeTab === 'notifications' ? 'bg-amber-500 text-black' : 'bg-neutral-900 text-neutral-400 hover:bg-neutral-800 hover:text-white'}`}>
+                            <Bell className="w-5 h-5" />
+                            Notifications
                         </button>
                     </nav>
 
@@ -461,6 +506,72 @@ const Admin = () => {
                                         ))}
                                     </div>
                                 )}
+                            </div>
+                        )}
+
+                        {/* Tab 6: Notifications */}
+                        {activeTab === 'notifications' && (
+                            <div className="space-y-6">
+                                <div className="flex justify-between items-center mb-6">
+                                    <h2 className="text-2xl font-serif font-bold">Notification Settings</h2>
+                                    <button onClick={fetchNotifEmails} className="text-xs font-bold text-amber-500 hover:text-white uppercase tracking-widest transition-colors">↻ Refresh</button>
+                                </div>
+
+                                {/* Add Email Form */}
+                                <form onSubmit={addNotifEmail} className="flex flex-col sm:flex-row gap-3 bg-black/40 border border-neutral-800 p-4 rounded-xl">
+                                    <input
+                                        type="email"
+                                        required
+                                        placeholder="Email address"
+                                        title="Email address"
+                                        value={notifNewEmail}
+                                        onChange={(e) => setNotifNewEmail(e.target.value)}
+                                        className="flex-1 bg-neutral-900 border border-neutral-800 rounded-xl px-4 py-3 text-white text-sm focus:border-amber-500 outline-none placeholder:text-neutral-600"
+                                    />
+                                    <input
+                                        type="text"
+                                        placeholder="Label (optional)"
+                                        title="Label"
+                                        value={notifNewLabel}
+                                        onChange={(e) => setNotifNewLabel(e.target.value)}
+                                        className="w-full sm:w-40 bg-neutral-900 border border-neutral-800 rounded-xl px-4 py-3 text-white text-sm focus:border-amber-500 outline-none placeholder:text-neutral-600"
+                                    />
+                                    <button type="submit" className="px-6 py-3 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-xl text-sm transition-all whitespace-nowrap">
+                                        + Add Email
+                                    </button>
+                                </form>
+
+                                {/* Email List */}
+                                {notifLoading ? (
+                                    <div className="flex justify-center py-8"><div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-amber-500" /></div>
+                                ) : notifEmails.length === 0 ? (
+                                    <div className="py-12 text-center border border-dashed border-neutral-800 rounded-2xl">
+                                        <Bell className="w-8 h-8 text-neutral-600 mx-auto mb-3" />
+                                        <p className="text-neutral-500 text-sm">No notification emails yet. Add one above.</p>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-2">
+                                        {notifEmails.map((item: any) => (
+                                            <div key={item.id} className="flex items-center justify-between gap-4 bg-black/30 border border-neutral-800 px-4 py-3 rounded-xl">
+                                                <div className="flex items-center gap-3 min-w-0">
+                                                    <Bell className="w-4 h-4 text-amber-500 shrink-0" />
+                                                    <div className="min-w-0">
+                                                        <p className="text-white text-sm font-bold truncate">{item.email}</p>
+                                                        {item.label && <p className="text-neutral-500 text-xs">{item.label}</p>}
+                                                    </div>
+                                                </div>
+                                                <button
+                                                    onClick={() => deleteNotifEmail(item.id)}
+                                                    title="Remove this email"
+                                                    className="shrink-0 p-2 rounded-lg bg-neutral-900 hover:bg-red-900/50 text-neutral-500 hover:text-red-400 transition-all"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                                <p className="text-xs text-neutral-600 pt-2">All emails above receive instant alerts when a new booking is submitted. Falls back to OWNER_EMAIL env var if this list is empty.</p>
                             </div>
                         )}
 
