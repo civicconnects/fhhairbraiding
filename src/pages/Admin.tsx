@@ -6,6 +6,8 @@ const Admin = () => {
     const [password, setPassword] = useState('');
     const [loginUsername, setLoginUsername] = useState('');
     const [isLoggedIn, setIsLoggedIn] = useState(false);
+    const [sessionToken, setSessionToken] = useState('');  // password_hash returned from /api/login
+    const [loggedInUser, setLoggedInUser] = useState<{ username: string; role: string } | null>(null);
     const [activeTab, setActiveTab] = useState('gallery');
 
     // Gallery Manager State
@@ -83,9 +85,7 @@ const Admin = () => {
             // Send to Pages Function (same domain — no CORS issues)
             const response = await fetch('/api/admin/upload', {
                 method: 'POST',
-                headers: {
-                    'X-Admin-Key': password
-                },
+                headers: { 'X-Admin-Key': sessionToken },
                 body: formData
             });
 
@@ -119,7 +119,7 @@ const Admin = () => {
         setBookingsLoading(true);
         try {
             const res = await fetch('/api/bookings', {
-                headers: { 'X-Admin-Key': password }
+                headers: { 'X-Admin-Key': sessionToken }
             });
             if (res.ok) {
                 const data = await res.json();
@@ -132,7 +132,7 @@ const Admin = () => {
     const updateBookingStatus = async (id: number, status: string) => {
         await fetch('/api/bookings', {
             method: 'PATCH',
-            headers: { 'Content-Type': 'application/json', 'X-Admin-Key': password },
+            headers: { 'Content-Type': 'application/json', 'X-Admin-Key': sessionToken },
             body: JSON.stringify({ id, status })
         });
         fetchBookings();
@@ -141,7 +141,7 @@ const Admin = () => {
     const fetchGalleryImages = async () => {
         setGalleryLoading(true);
         try {
-            const res = await fetch('/api/admin/gallery', { headers: { 'X-Admin-Key': password } });
+            const res = await fetch('/api/admin/gallery', { headers: { 'X-Admin-Key': sessionToken } });
             if (res.ok) setGalleryImages(await res.json());
         } catch (_) { }
         finally { setGalleryLoading(false); }
@@ -150,7 +150,7 @@ const Admin = () => {
     const toggleImageVisibility = async (id: number, currentVisible: number) => {
         await fetch('/api/admin/gallery', {
             method: 'PATCH',
-            headers: { 'Content-Type': 'application/json', 'X-Admin-Key': password },
+            headers: { 'Content-Type': 'application/json', 'X-Admin-Key': sessionToken },
             body: JSON.stringify({ id, visible: currentVisible === 1 ? 0 : 1 })
         });
         setGalleryImages(prev => prev.map(img => img.id === id ? { ...img, visible: currentVisible === 1 ? 0 : 1 } : img));
@@ -160,7 +160,7 @@ const Admin = () => {
         if (!confirm('Permanently delete this image from R2 and the gallery? This cannot be undone.')) return;
         await fetch('/api/admin/gallery', {
             method: 'DELETE',
-            headers: { 'Content-Type': 'application/json', 'X-Admin-Key': password },
+            headers: { 'Content-Type': 'application/json', 'X-Admin-Key': sessionToken },
             body: JSON.stringify({ id })
         });
         setGalleryImages(prev => prev.filter(img => img.id !== id));
@@ -169,7 +169,7 @@ const Admin = () => {
     const fetchNotifEmails = async () => {
         setNotifLoading(true);
         try {
-            const res = await fetch('/api/notifications', { headers: { 'X-Admin-Key': password } });
+            const res = await fetch('/api/notifications', { headers: { 'X-Admin-Key': sessionToken } });
             if (res.ok) setNotifEmails(await res.json());
         } catch (_) { }
         finally { setNotifLoading(false); }
@@ -180,7 +180,7 @@ const Admin = () => {
         if (!notifNewEmail) return;
         const res = await fetch('/api/notifications', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-Admin-Key': password },
+            headers: { 'Content-Type': 'application/json', 'X-Admin-Key': sessionToken },
             body: JSON.stringify({ email: notifNewEmail, label: notifNewLabel })
         });
         if (res.ok) {
@@ -195,7 +195,7 @@ const Admin = () => {
     const deleteNotifEmail = async (id: number) => {
         await fetch('/api/notifications', {
             method: 'DELETE',
-            headers: { 'Content-Type': 'application/json', 'X-Admin-Key': password },
+            headers: { 'Content-Type': 'application/json', 'X-Admin-Key': sessionToken },
             body: JSON.stringify({ id })
         });
         setNotifEmails(prev => prev.filter(e => e.id !== id));
@@ -224,10 +224,9 @@ const Admin = () => {
                                 });
                                 if (res.ok) {
                                     const data = await res.json();
-                                    // Keep password in state for subsequent admin API calls that still use X-Admin-Key
+                                    setSessionToken(data.token);         // store session token
+                                    setLoggedInUser({ username: data.username, role: data.role });
                                     setIsLoggedIn(true);
-                                    setPassword(password); // preserve for gallery/bookings API calls
-                                    console.log(`Logged in as ${data.username} (${data.role})`);
                                 } else {
                                     alert("Invalid username or password.");
                                 }

@@ -19,6 +19,23 @@ export default {
             return new Response(null, { status: 204, headers: corsHeaders });
         }
 
+        // ── Admin auth helper ────────────────────────────────────────────────
+        // Accepts either ADMIN_PASSWORD (legacy/superadmin) or a valid token
+        // (password_hash) from the admin_users table.
+        const checkAdminAuth = async (req) => {
+            const key = req.headers.get("X-Admin-Key");
+            if (!key) return false;
+            // 1. Legacy ADMIN_PASSWORD
+            if (env.ADMIN_PASSWORD && key === env.ADMIN_PASSWORD) return true;
+            // 2. D1 admin_users token check (token == password_hash)
+            try {
+                const { results } = await env.DB.prepare(
+                    "SELECT id FROM admin_users WHERE password_hash = ?"
+                ).bind(key).all();
+                return results.length > 0;
+            } catch (_) { return false; }
+        };
+
         // ── POST /api/login ──────────────────────────────────────────────────
         if (url.pathname === "/api/login" && request.method === "POST") {
             try {
@@ -29,23 +46,27 @@ export default {
                 const hashBuffer = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(password || ""));
                 const hashHex = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, "0")).join("");
 
-                // Check admin_users table first
+                // Check admin_users table
                 if (env.DB && username) {
                     const { results } = await env.DB.prepare(
-                        "SELECT id, username, role FROM admin_users WHERE username = ? AND password_hash = ?"
+                        "SELECT id, username, role, password_hash FROM admin_users WHERE username = ? AND password_hash = ?"
                     ).bind(username.toLowerCase(), hashHex).all();
 
                     if (results.length > 0) {
-                        return new Response(JSON.stringify({ success: true, username: results[0].username, role: results[0].role }), {
-                            status: 200, headers: corsHeaders
-                        });
+                        // Return the password_hash as the session token — used as X-Admin-Key
+                        return new Response(JSON.stringify({
+                            success: true,
+                            username: results[0].username,
+                            role: results[0].role,
+                            token: results[0].password_hash  // session token for subsequent API calls
+                        }), { status: 200, headers: corsHeaders });
                     }
                 }
 
-                // Fallback: legacy ADMIN_PASSWORD env var (for backward compat)
+                // Fallback: legacy ADMIN_PASSWORD header
                 const adminKey = request.headers.get("X-Admin-Key");
                 if (adminKey && env.ADMIN_PASSWORD && adminKey === env.ADMIN_PASSWORD) {
-                    return new Response(JSON.stringify({ success: true, username: "admin", role: "admin" }), {
+                    return new Response(JSON.stringify({ success: true, username: "admin", role: "superadmin", token: env.ADMIN_PASSWORD }), {
                         status: 200, headers: corsHeaders
                     });
                 }
@@ -99,7 +120,7 @@ export default {
         // ── GET /api/admin/gallery (admin — returns all images with visible flag) ─
         if (url.pathname === "/api/admin/gallery" && request.method === "GET") {
             const adminKey = request.headers.get("X-Admin-Key");
-            if (!adminKey || adminKey !== env.ADMIN_PASSWORD) {
+            if (!(await checkAdminAuth(request))) {
                 return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
             }
             try {
@@ -115,7 +136,7 @@ export default {
         // ── PATCH /api/admin/gallery — toggle visible ────────────────────────
         if (url.pathname === "/api/admin/gallery" && request.method === "PATCH") {
             const adminKey = request.headers.get("X-Admin-Key");
-            if (!adminKey || adminKey !== env.ADMIN_PASSWORD) {
+            if (!(await checkAdminAuth(request))) {
                 return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
             }
             try {
@@ -130,7 +151,7 @@ export default {
         // ── DELETE /api/admin/gallery — remove from D1 + R2 ─────────────────
         if (url.pathname === "/api/admin/gallery" && request.method === "DELETE") {
             const adminKey = request.headers.get("X-Admin-Key");
-            if (!adminKey || adminKey !== env.ADMIN_PASSWORD) {
+            if (!(await checkAdminAuth(request))) {
                 return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
             }
             try {
@@ -336,7 +357,7 @@ export default {
         // ── GET /api/notifications (admin) ────────────────────────────────────
         if (url.pathname === "/api/notifications" && request.method === "GET") {
             const adminKey = request.headers.get("X-Admin-Key");
-            if (!adminKey || adminKey !== env.ADMIN_PASSWORD) {
+            if (!(await checkAdminAuth(request))) {
                 return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
             }
             try {
@@ -352,7 +373,7 @@ export default {
         // ── POST /api/notifications (admin) ───────────────────────────────────
         if (url.pathname === "/api/notifications" && request.method === "POST") {
             const adminKey = request.headers.get("X-Admin-Key");
-            if (!adminKey || adminKey !== env.ADMIN_PASSWORD) {
+            if (!(await checkAdminAuth(request))) {
                 return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
             }
             try {
@@ -372,7 +393,7 @@ export default {
         // ── DELETE /api/notifications (admin) ─────────────────────────────────
         if (url.pathname === "/api/notifications" && request.method === "DELETE") {
             const adminKey = request.headers.get("X-Admin-Key");
-            if (!adminKey || adminKey !== env.ADMIN_PASSWORD) {
+            if (!(await checkAdminAuth(request))) {
                 return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
             }
             try {
@@ -387,7 +408,7 @@ export default {
         // ── GET /api/bookings (admin) ─────────────────────────────────────────
         if (url.pathname === "/api/bookings" && request.method === "GET") {
             const adminKey = request.headers.get("X-Admin-Key");
-            if (!adminKey || adminKey !== env.ADMIN_PASSWORD) {
+            if (!(await checkAdminAuth(request))) {
                 return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
             }
             try {
@@ -411,7 +432,7 @@ export default {
         // ── PATCH /api/bookings (admin) ───────────────────────────────────────
         if (url.pathname === "/api/bookings" && request.method === "PATCH") {
             const adminKey = request.headers.get("X-Admin-Key");
-            if (!adminKey || adminKey !== env.ADMIN_PASSWORD) {
+            if (!(await checkAdminAuth(request))) {
                 return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
             }
             try {
