@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Calendar as CalendarIcon, Clock, User, Phone, CheckCircle2, ChevronRight, Mail } from 'lucide-react';
+import { Calendar as CalendarIcon, User, Phone, CheckCircle2, ChevronRight, Mail } from 'lucide-react';
 
-// Hardcoded for MVP availability slots. Real-world would calculate against service durations.
-const DAILY_SLOTS = ["09:00 AM", "01:00 PM"];
+const DAILY_SLOTS = ["09:00 AM", "02:00 PM"];
 
 export default function CalendarPicker() {
     const [step, setStep] = useState(1);
@@ -153,32 +152,25 @@ export default function CalendarPicker() {
                             {selectedDateStamp && (
                                 <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
                                     <label className="text-sm font-bold text-neutral-400 block mb-3 uppercase tracking-wider">2. Select a Time</label>
-                                    <div className="grid grid-cols-2 gap-3">
-                                        {DAILY_SLOTS.map((slot, idx) => {
+                                    <select
+                                        aria-label="Select Time"
+                                        title="Select Time"
+                                        required
+                                        value={selectedSlot}
+                                        onChange={(e) => setSelectedSlot(e.target.value)}
+                                        className="w-full bg-neutral-900 border border-neutral-800 rounded-xl p-4 text-white focus:border-amber-500 outline-none font-mono appearance-none"
+                                    >
+                                        <option value="">-- Pick a time --</option>
+                                        {DAILY_SLOTS.map((slot) => {
                                             const dateStr = new Date(selectedDateStamp).toISOString().split('T')[0];
-                                            const isTaken = bookedSlots.some(
-                                                (b: any) => b.date === dateStr && b.time === slot
-                                            );
-                                            const isSelected = selectedSlot === slot;
+                                            const isTaken = bookedSlots.some((b: any) => b.date === dateStr && b.time === slot);
                                             return (
-                                                <button
-                                                    key={idx}
-                                                    onClick={() => !isTaken && setSelectedSlot(slot)}
-                                                    disabled={isTaken}
-                                                    className={`p-3 flex items-center justify-center gap-2 rounded-xl border font-mono transition-all ${isTaken
-                                                        ? 'border-neutral-800 bg-neutral-900/30 text-neutral-600 cursor-not-allowed line-through'
-                                                        : isSelected
-                                                            ? 'border-amber-500 bg-amber-500 text-black font-bold'
-                                                            : 'border-neutral-800 bg-neutral-900/50 text-neutral-400 hover:border-neutral-600 hover:text-white'
-                                                        }`}
-                                                >
-                                                    <Clock className="w-4 h-4" />
-                                                    {slot}
-                                                    {isTaken && <span className="text-xs ml-1 text-red-500">Taken</span>}
-                                                </button>
+                                                <option key={slot} value={slot} disabled={isTaken}>
+                                                    {slot}{isTaken ? ' (Taken)' : ''}
+                                                </option>
                                             );
                                         })}
-                                    </div>
+                                    </select>
                                 </div>
                             )}
 
