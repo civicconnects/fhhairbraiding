@@ -270,7 +270,11 @@ const Admin = () => {
                 <header className="flex justify-between items-end mb-8 border-b border-neutral-800 pb-6">
                     <div>
                         <h1 className="text-3xl font-serif font-bold text-amber-500 mb-1">Command Center</h1>
-                        <p className="text-neutral-400 text-sm">Manage SEO Silos, Galleries, and Global Settings</p>
+                        <p className="text-neutral-400 text-sm">
+                            {loggedInUser ? (
+                                <span>Signed in as <strong className="text-white">{loggedInUser.username}</strong> <span className={`ml-1 px-2 py-0.5 rounded-full text-xs font-bold uppercase ${loggedInUser.role === 'superadmin' ? 'bg-amber-500 text-black' : 'bg-neutral-700 text-neutral-300'}`}>{loggedInUser.role}</span></span>
+                            ) : 'Manage SEO Silos, Galleries, and Global Settings'}
+                        </p>
                     </div>
                     <button
                         onClick={() => setIsLoggedIn(false)}
