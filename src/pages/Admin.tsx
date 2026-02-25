@@ -4,6 +4,7 @@ import { Camera, Type, Clock, ShieldCheck, LogOut, CheckCircle2, CalendarDays, E
 const Admin = () => {
     const [services, setServices] = useState<any[]>([]);
     const [password, setPassword] = useState('');
+    const [loginUsername, setLoginUsername] = useState('');
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [activeTab, setActiveTab] = useState('gallery');
 
@@ -174,28 +175,40 @@ const Admin = () => {
                     <form
                         onSubmit={async (e) => {
                             e.preventDefault();
-                            if (password.length > 0) {
-                                try {
-                                    const res = await fetch('/api/login', {
-                                        method: 'POST',
-                                        headers: { 'X-Admin-Key': password }
-                                    });
-                                    if (res.ok) {
-                                        setIsLoggedIn(true);
-                                    } else {
-                                        alert("Invalid Master Password. Unauthorized.");
-                                    }
-                                } catch (err) {
-                                    alert("Could not reach authentication server.");
+                            try {
+                                const res = await fetch('/api/login', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ username: loginUsername, password })
+                                });
+                                if (res.ok) {
+                                    const data = await res.json();
+                                    // Keep password in state for subsequent admin API calls that still use X-Admin-Key
+                                    setIsLoggedIn(true);
+                                    setPassword(password); // preserve for gallery/bookings API calls
+                                    console.log(`Logged in as ${data.username} (${data.role})`);
+                                } else {
+                                    alert("Invalid username or password.");
                                 }
+                            } catch (err) {
+                                alert("Could not reach authentication server.");
                             }
                         }}
                         className="space-y-4 relative z-10"
                     >
                         <input
-                            type="password"
-                            placeholder="Enter Master Password"
+                            type="text"
+                            placeholder="Username"
                             required
+                            autoComplete="username"
+                            className="bg-black p-4 rounded-xl w-full border border-neutral-800 focus:border-amber-500 outline-none transition-colors"
+                            onChange={(e) => setLoginUsername(e.target.value)}
+                        />
+                        <input
+                            type="password"
+                            placeholder="Password"
+                            required
+                            autoComplete="current-password"
                             className="bg-black p-4 rounded-xl w-full border border-neutral-800 focus:border-amber-500 outline-none transition-colors"
                             onChange={(e) => setPassword(e.target.value)}
                         />

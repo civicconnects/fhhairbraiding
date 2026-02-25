@@ -21,19 +21,39 @@ export default {
 
         // ── POST /api/login ──────────────────────────────────────────────────
         if (url.pathname === "/api/login" && request.method === "POST") {
-            const adminKey = request.headers.get("X-Admin-Key");
-            const secret = env.ADMIN_PASSWORD;
+            try {
+                const body = await request.json().catch(() => ({}));
+                const { username, password } = body;
 
-            console.log("[/api/login] ADMIN_PASSWORD configured:", !!secret);
+                // Hash the submitted password with SHA-256
+                const hashBuffer = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(password || ""));
+                const hashHex = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, "0")).join("");
 
-            if (!adminKey || !secret || adminKey !== secret) {
-                return new Response(JSON.stringify({ error: "Unauthorized" }), {
-                    status: 401, headers: corsHeaders
-                });
+                // Check admin_users table first
+                if (env.DB && username) {
+                    const { results } = await env.DB.prepare(
+                        "SELECT id, username, role FROM admin_users WHERE username = ? AND password_hash = ?"
+                    ).bind(username.toLowerCase(), hashHex).all();
+
+                    if (results.length > 0) {
+                        return new Response(JSON.stringify({ success: true, username: results[0].username, role: results[0].role }), {
+                            status: 200, headers: corsHeaders
+                        });
+                    }
+                }
+
+                // Fallback: legacy ADMIN_PASSWORD env var (for backward compat)
+                const adminKey = request.headers.get("X-Admin-Key");
+                if (adminKey && env.ADMIN_PASSWORD && adminKey === env.ADMIN_PASSWORD) {
+                    return new Response(JSON.stringify({ success: true, username: "admin", role: "admin" }), {
+                        status: 200, headers: corsHeaders
+                    });
+                }
+
+                return new Response(JSON.stringify({ error: "Invalid credentials." }), { status: 401, headers: corsHeaders });
+            } catch (e) {
+                return new Response(JSON.stringify({ error: e.message }), { status: 500, headers: corsHeaders });
             }
-            return new Response(JSON.stringify({ success: true }), {
-                status: 200, headers: corsHeaders
-            });
         }
 
         // ── GET /api/services ────────────────────────────────────────────────
