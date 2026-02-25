@@ -583,23 +583,27 @@ const Admin = () => {
                                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                                             {serviceImages.map((svc: any) => {
                                                 const hasR2 = svc.image_url && svc.image_url.startsWith('https://images.fhhairbraiding.com/');
-                                                const imgSrc = hasR2 ? svc.image_url : (svc.image_url || '/images/gallery-2.png');
                                                 return (
-                                                    <div key={svc.id} className={`rounded-xl overflow-hidden border ${hasR2 ? 'border-neutral-700' : 'border-neutral-800 opacity-60'} bg-neutral-950`}>
-                                                        <div className="relative">
+                                                    <div key={svc.id} className={`rounded-xl overflow-hidden border ${hasR2 ? 'border-neutral-700' : 'border-dashed border-neutral-700'} bg-neutral-950`}>
+                                                        {/* Image or empty placeholder */}
+                                                        {hasR2 ? (
                                                             <img
-                                                                src={imgSrc}
+                                                                src={svc.image_url}
                                                                 alt={svc.name}
                                                                 className="w-full h-44 object-cover bg-neutral-900"
-                                                                onError={(e: any) => { e.target.src = '/images/gallery-2.png'; }}
+                                                                onError={(e: any) => { e.target.style.display = 'none'; }}
                                                             />
-                                                            {!hasR2 && (
-                                                                <div className="absolute top-2 right-2 px-2 py-0.5 bg-neutral-800 text-neutral-400 text-xs font-bold rounded-full">Local fallback</div>
-                                                            )}
-                                                        </div>
+                                                        ) : (
+                                                            <div className="w-full h-44 bg-neutral-900 flex flex-col items-center justify-center gap-2">
+                                                                <span className="text-neutral-600 text-2xl">📷</span>
+                                                                <span className="text-neutral-500 text-xs font-bold uppercase tracking-widest">No Image · Hidden from site</span>
+                                                            </div>
+                                                        )}
                                                         <div className="p-3 space-y-2">
                                                             <p className="text-xs font-bold text-white">{svc.name}</p>
-                                                            <p className="text-[10px] text-neutral-600 truncate">{hasR2 ? svc.image_url.split('/').pop() : 'No R2 image'}</p>
+                                                            <p className="text-[10px] text-neutral-600 truncate">
+                                                                {hasR2 ? svc.image_url.split('/').pop() : 'No R2 image assigned'}
+                                                            </p>
                                                             {hasR2 && (
                                                                 <button
                                                                     onClick={() => deleteServiceImage(svc.id, svc.name)}

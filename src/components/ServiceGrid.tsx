@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import localServices from '../content/services.json';
 
 type Service = {
     id: string;
@@ -8,15 +7,14 @@ type Service = {
     name?: string;
     title?: string;
     description?: string;
-    image_url?: string;   // R2 URL from D1 (live, uploaded via Admin)
-    imagePath?: string;   // Local fallback from services.json
+    image_url?: string | null;  // R2 URL from D1 only — no local fallbacks
 };
 
 export default function ServiceGrid() {
-    const [services, setServices] = useState<Service[]>(localServices as Service[]);
+    const [services, setServices] = useState<Service[]>([]);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        // no-cache ensures freshly uploaded R2 images appear immediately
         fetch('/api/services', { cache: 'no-store' })
             .then(res => res.json())
             .then((data: Service[]) => {
@@ -24,10 +22,34 @@ export default function ServiceGrid() {
                     setServices(data);
                 }
             })
-            .catch(() => {
-                // Silently keep local services as fallback
-            });
+            .catch(() => { })
+            .finally(() => setLoading(false));
     }, []);
+
+    // Only services with a real R2 image
+    const visibleServices = services.filter(
+        s => s.image_url && s.image_url.startsWith('https://images.fhhairbraiding.com/')
+    );
+
+    if (loading) {
+        return (
+            <section className="w-full max-w-7xl mx-auto px-6 py-24 font-sans border-t border-neutral-900">
+                <div className="flex justify-center py-20">
+                    <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-amber-500" />
+                </div>
+            </section>
+        );
+    }
+
+    if (visibleServices.length === 0) {
+        return (
+            <section className="w-full max-w-7xl mx-auto px-6 py-24 font-sans border-t border-neutral-900">
+                <div className="text-center py-20 text-neutral-600">
+                    <p className="text-lg">No service images uploaded yet. Add images via the Admin panel.</p>
+                </div>
+            </section>
+        );
+    }
 
     return (
         <section className="w-full max-w-7xl mx-auto px-6 py-24 font-sans border-t border-neutral-900">
@@ -41,13 +63,8 @@ export default function ServiceGrid() {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-                {services.map((service) => {
-                    // Priority: R2 image_url from D1 → local imagePath → generic fallback
-                    const imgSrc = service.image_url && service.image_url.startsWith('http')
-                        ? service.image_url
-                        : service.imagePath || '/images/gallery-2.png';
+                {visibleServices.map((service) => {
                     const displayName = service.name || service.title || '';
-
                     return (
                         <Link
                             to={`/services/${service.slug}`}
@@ -56,9 +73,10 @@ export default function ServiceGrid() {
                         >
                             <div className="aspect-[4/5] overflow-hidden bg-[#1a1a1a] relative">
                                 <img
-                                    src={imgSrc}
+                                    src={service.image_url!}
                                     alt={displayName}
                                     className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-700 opacity-90 group-hover:opacity-100"
+                                    onError={(e: any) => { e.target.closest('a').style.display = 'none'; }}
                                 />
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent pointer-events-none" />
                                 <div className="absolute bottom-6 left-6 right-6 flex justify-between items-end">
