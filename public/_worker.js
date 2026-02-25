@@ -9,7 +9,7 @@ export default {
         // CORS headers for all API responses
         const corsHeaders = {
             "Access-Control-Allow-Origin": "*",
-            "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+            "Access-Control-Allow-Methods": "GET, POST, PATCH, DELETE, OPTIONS",
             "Access-Control-Allow-Headers": "Content-Type, X-Admin-Key",
             "Content-Type": "application/json"
         };
@@ -73,6 +73,62 @@ export default {
                 return new Response(JSON.stringify({ error: e.message }), {
                     status: 500, headers: corsHeaders
                 });
+            }
+        }
+
+        // ── GET /api/admin/gallery (admin — returns all images with visible flag) ─
+        if (url.pathname === "/api/admin/gallery" && request.method === "GET") {
+            const adminKey = request.headers.get("X-Admin-Key");
+            if (!adminKey || adminKey !== env.ADMIN_PASSWORD) {
+                return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
+            }
+            try {
+                const { results } = await env.DB.prepare(
+                    "SELECT id, service_id, service_slug, image_url, section, visible, uploaded_at FROM gallery_images ORDER BY uploaded_at DESC"
+                ).all();
+                return new Response(JSON.stringify(results), { status: 200, headers: corsHeaders });
+            } catch (e) {
+                return new Response(JSON.stringify({ error: e.message }), { status: 500, headers: corsHeaders });
+            }
+        }
+
+        // ── PATCH /api/admin/gallery — toggle visible ────────────────────────
+        if (url.pathname === "/api/admin/gallery" && request.method === "PATCH") {
+            const adminKey = request.headers.get("X-Admin-Key");
+            if (!adminKey || adminKey !== env.ADMIN_PASSWORD) {
+                return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
+            }
+            try {
+                const { id, visible } = await request.json();
+                await env.DB.prepare("UPDATE gallery_images SET visible = ? WHERE id = ?").bind(visible ? 1 : 0, id).run();
+                return new Response(JSON.stringify({ success: true }), { status: 200, headers: corsHeaders });
+            } catch (e) {
+                return new Response(JSON.stringify({ error: e.message }), { status: 500, headers: corsHeaders });
+            }
+        }
+
+        // ── DELETE /api/admin/gallery — remove from D1 + R2 ─────────────────
+        if (url.pathname === "/api/admin/gallery" && request.method === "DELETE") {
+            const adminKey = request.headers.get("X-Admin-Key");
+            if (!adminKey || adminKey !== env.ADMIN_PASSWORD) {
+                return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
+            }
+            try {
+                const { id } = await request.json();
+                // Get the image URL so we can extract the R2 key
+                const { results } = await env.DB.prepare("SELECT image_url FROM gallery_images WHERE id = ?").bind(id).all();
+                if (results.length > 0) {
+                    const imageUrl = results[0].image_url;
+                    // Extract filename from URL (last segment after final /)
+                    const r2Key = imageUrl.split('/').pop();
+                    if (r2Key) {
+                        try { await env.BUCKET.delete(r2Key); } catch (_) { /* R2 delete best-effort */ }
+                    }
+                }
+                await env.DB.prepare("DELETE FROM gallery_images WHERE id = ?").bind(id).run();
+                return new Response(JSON.stringify({ success: true }), { status: 200, headers: corsHeaders });
+            } catch (e) {
+                return new Response(JSON.stringify({ error: e.message }), { status: 500, headers: corsHeaders });
             }
         }
 

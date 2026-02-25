@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Camera, Type, Clock, ShieldCheck, LogOut, CheckCircle2, CalendarDays } from 'lucide-react';
+import { Camera, Type, Clock, ShieldCheck, LogOut, CheckCircle2, CalendarDays, Eye, EyeOff, Trash2 } from 'lucide-react';
 
 const Admin = () => {
     const [services, setServices] = useState<any[]>([]);
@@ -20,6 +20,10 @@ const Admin = () => {
     // Schedule State
     const [bookings, setBookings] = useState<any[]>([]);
     const [bookingsLoading, setBookingsLoading] = useState(false);
+
+    // Gallery Images State
+    const [galleryImages, setGalleryImages] = useState<any[]>([]);
+    const [galleryLoading, setGalleryLoading] = useState(false);
 
     // Availability State
     const [availabilityStatus, setAvailabilityStatus] = useState('Limited availability remaining. Contact immediately to secure a slot for this Friday or Saturday.');
@@ -124,7 +128,35 @@ const Admin = () => {
             headers: { 'Content-Type': 'application/json', 'X-Admin-Key': password },
             body: JSON.stringify({ id, status })
         });
-        fetchBookings(); // refresh
+        fetchBookings();
+    };
+
+    const fetchGalleryImages = async () => {
+        setGalleryLoading(true);
+        try {
+            const res = await fetch('/api/admin/gallery', { headers: { 'X-Admin-Key': password } });
+            if (res.ok) setGalleryImages(await res.json());
+        } catch (_) { }
+        finally { setGalleryLoading(false); }
+    };
+
+    const toggleImageVisibility = async (id: number, currentVisible: number) => {
+        await fetch('/api/admin/gallery', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json', 'X-Admin-Key': password },
+            body: JSON.stringify({ id, visible: currentVisible === 1 ? 0 : 1 })
+        });
+        setGalleryImages(prev => prev.map(img => img.id === id ? { ...img, visible: currentVisible === 1 ? 0 : 1 } : img));
+    };
+
+    const deleteGalleryImage = async (id: number) => {
+        if (!confirm('Permanently delete this image from R2 and the gallery? This cannot be undone.')) return;
+        await fetch('/api/admin/gallery', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json', 'X-Admin-Key': password },
+            body: JSON.stringify({ id })
+        });
+        setGalleryImages(prev => prev.filter(img => img.id !== id));
     };
 
     if (!isLoggedIn) {
@@ -214,6 +246,10 @@ const Admin = () => {
                         <button onClick={() => { setActiveTab('schedule'); fetchBookings(); }} className={`flex items-center gap-3 p-4 rounded-xl text-sm font-bold transition-all ${activeTab === 'schedule' ? 'bg-amber-500 text-black' : 'bg-neutral-900 text-neutral-400 hover:bg-neutral-800 hover:text-white'}`}>
                             <CalendarDays className="w-5 h-5" />
                             Schedule
+                        </button>
+                        <button onClick={() => { setActiveTab('images'); fetchGalleryImages(); }} className={`flex items-center gap-3 p-4 rounded-xl text-sm font-bold transition-all ${activeTab === 'images' ? 'bg-amber-500 text-black' : 'bg-neutral-900 text-neutral-400 hover:bg-neutral-800 hover:text-white'}`}>
+                            <Eye className="w-5 h-5" />
+                            Manage Images
                         </button>
                     </nav>
 
@@ -356,10 +392,69 @@ const Admin = () => {
                             </div>
                         )}
 
+                        {/* Tab 5: Manage Images */}
+                        {activeTab === 'images' && (
+                            <div className="space-y-6">
+                                <div className="flex justify-between items-center mb-6">
+                                    <h2 className="text-2xl font-serif font-bold">Manage Gallery Images</h2>
+                                    <button onClick={fetchGalleryImages} className="text-xs font-bold text-amber-500 hover:text-white uppercase tracking-widest transition-colors">↻ Refresh</button>
+                                </div>
+                                {galleryLoading ? (
+                                    <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-amber-500" /></div>
+                                ) : galleryImages.length === 0 ? (
+                                    <div className="py-16 text-center border border-dashed border-neutral-800 rounded-2xl">
+                                        <Camera className="w-10 h-10 text-neutral-600 mx-auto mb-3" />
+                                        <p className="text-neutral-500">No images uploaded yet.</p>
+                                    </div>
+                                ) : (
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                                        {galleryImages.map((img: any) => (
+                                            <div key={img.id} className={`relative group rounded-xl overflow-hidden border ${img.visible ? 'border-neutral-800' : 'border-red-900/50 opacity-60'}`}>
+                                                <img
+                                                    src={img.image_url}
+                                                    alt={img.service_slug}
+                                                    className="w-full h-40 object-cover bg-neutral-900"
+                                                />
+                                                {/* Section badge */}
+                                                <div className="absolute top-2 left-2">
+                                                    <span className={`px-2 py-0.5 rounded-full text-xs font-bold uppercase ${img.section === 'signature' ? 'bg-amber-500/90 text-black' : 'bg-purple-600/90 text-white'}`}>
+                                                        {img.section}
+                                                    </span>
+                                                </div>
+                                                {/* Hidden badge */}
+                                                {!img.visible && (
+                                                    <div className="absolute top-2 right-2 bg-red-600/90 text-white text-xs font-bold px-2 py-0.5 rounded-full">Hidden</div>
+                                                )}
+                                                {/* Actions */}
+                                                <div className="absolute bottom-0 left-0 right-0 p-2 bg-black/70 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    <button
+                                                        title={img.visible ? 'Hide from site' : 'Show on site'}
+                                                        onClick={() => toggleImageVisibility(img.id, img.visible)}
+                                                        className="flex-1 flex items-center justify-center gap-1 text-xs font-bold py-2 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-white transition-all"
+                                                    >
+                                                        {img.visible ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                                                        {img.visible ? 'Hide' : 'Show'}
+                                                    </button>
+                                                    <button
+                                                        title="Delete image permanently"
+                                                        onClick={() => deleteGalleryImage(img.id)}
+                                                        className="flex items-center justify-center gap-1 text-xs font-bold px-3 py-2 rounded-lg bg-red-900/80 hover:bg-red-700 text-red-300 hover:text-white transition-all"
+                                                    >
+                                                        <Trash2 className="w-3.5 h-3.5" />
+                                                    </button>
+                                                </div>
+                                                <p className="text-xs text-neutral-500 text-center py-1 truncate px-2">{img.service_slug}</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
                     </main>
                 </div>
             </div>
-        </div>
+        </div >
     );
 };
 
