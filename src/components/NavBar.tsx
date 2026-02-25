@@ -24,6 +24,8 @@ export default function NavBar() {
         { name: 'Home', href: '/' },
         { name: 'Services', href: '/#services' },
         { name: 'Portfolio', href: '/#gallery' },
+        { name: 'About Us', href: '/#about' },
+        { name: 'Contact Us', href: '/#contact' },
     ];
 
     const socialLinks = [

@@ -58,10 +58,11 @@ export default function ContactHub() {
                             {/* Embedded Google Map iframe - Replace src with actual map embed link for 543 N Wilson Rd Radcliff, KY */}
                             <iframe
                                 title="F&H Hair Braiding Location"
-                                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1m3!1d3148.9723237190013!2d-85.952523!3d37.832961!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x88691b058eb7b8cb%3A0x6b8655b8dc4c6b84!2s543%20N%20Wilson%20Rd%20D%2C%20Radcliff%2C%20KY%2040160!5e0!3m2!1sen!2sus!4v1710000000000!5m2!1sen!2sus"
+                                src="https://maps.google.com/maps?q=543+N+Wilson+Rd+Suite+D+Radcliff+KY+40160&output=embed&z=16"
                                 className="absolute inset-0 w-full h-full border-0"
                                 allowFullScreen={false}
                                 loading="lazy"
+                                referrerPolicy="no-referrer-when-downgrade"
                             ></iframe>
                         </div>
 
