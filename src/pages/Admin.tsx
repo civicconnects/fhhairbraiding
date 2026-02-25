@@ -28,6 +28,10 @@ const Admin = () => {
     const [galleryImages, setGalleryImages] = useState<any[]>([]);
     const [galleryLoading, setGalleryLoading] = useState(false);
 
+    // Service (Homepage) Images State
+    const [serviceImages, setServiceImages] = useState<any[]>([]);
+    const [serviceImagesLoading, setServiceImagesLoading] = useState(false);
+
     // Notification Settings State
     const [notifEmails, setNotifEmails] = useState<any[]>([]);
     const [notifNewEmail, setNotifNewEmail] = useState('');
@@ -164,6 +168,30 @@ const Admin = () => {
             body: JSON.stringify({ id })
         });
         setGalleryImages(prev => prev.filter(img => img.id !== id));
+    };
+
+    const fetchServiceImages = async () => {
+        setServiceImagesLoading(true);
+        try {
+            const res = await fetch('/api/admin/service-images', { headers: { 'X-Admin-Key': sessionToken } });
+            if (res.ok) setServiceImages(await res.json());
+        } catch (_) { }
+        finally { setServiceImagesLoading(false); }
+    };
+
+    const deleteServiceImage = async (serviceId: string, serviceName: string) => {
+        if (!confirm(`Remove the uploaded image for "${serviceName}" from R2 + homepage? The service card will fall back to a placeholder.`)) return;
+        const res = await fetch('/api/admin/service-images', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json', 'X-Admin-Key': sessionToken },
+            body: JSON.stringify({ serviceId })
+        });
+        if (res.ok) {
+            // Optimistically update: clear image_url so card shows it's been removed
+            setServiceImages(prev => prev.map(s => s.id === serviceId ? { ...s, image_url: null } : s));
+            // Also refresh gallery images in case it was in both tables
+            fetchGalleryImages();
+        }
     };
 
     const fetchNotifEmails = async () => {
@@ -531,6 +559,62 @@ const Admin = () => {
                                         );
                                     })
                                 )}
+
+                                {/* ── Homepage Service Images ── */}
+                                <div className="pt-4 border-t border-neutral-800">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <div>
+                                            <h3 className="text-lg font-bold text-white">Homepage Service Images</h3>
+                                            <p className="text-xs text-neutral-500 mt-0.5">These are the images on the service cards on the homepage. Delete removes from R2 + clears the card.</p>
+                                        </div>
+                                        <button
+                                            onClick={fetchServiceImages}
+                                            className="text-xs font-bold text-amber-500 hover:text-white uppercase tracking-widest transition-colors"
+                                        >↻ Load</button>
+                                    </div>
+
+                                    {serviceImagesLoading ? (
+                                        <div className="flex justify-center py-8"><div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-amber-500" /></div>
+                                    ) : serviceImages.length === 0 ? (
+                                        <div className="py-8 text-center border border-dashed border-neutral-800 rounded-xl">
+                                            <p className="text-neutral-500 text-sm">Click ↻ Load to fetch service images.</p>
+                                        </div>
+                                    ) : (
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                            {serviceImages.map((svc: any) => {
+                                                const hasR2 = svc.image_url && svc.image_url.startsWith('https://images.fhhairbraiding.com/');
+                                                const imgSrc = hasR2 ? svc.image_url : (svc.image_url || '/images/gallery-2.png');
+                                                return (
+                                                    <div key={svc.id} className={`rounded-xl overflow-hidden border ${hasR2 ? 'border-neutral-700' : 'border-neutral-800 opacity-60'} bg-neutral-950`}>
+                                                        <div className="relative">
+                                                            <img
+                                                                src={imgSrc}
+                                                                alt={svc.name}
+                                                                className="w-full h-44 object-cover bg-neutral-900"
+                                                                onError={(e: any) => { e.target.src = '/images/gallery-2.png'; }}
+                                                            />
+                                                            {!hasR2 && (
+                                                                <div className="absolute top-2 right-2 px-2 py-0.5 bg-neutral-800 text-neutral-400 text-xs font-bold rounded-full">Local fallback</div>
+                                                            )}
+                                                        </div>
+                                                        <div className="p-3 space-y-2">
+                                                            <p className="text-xs font-bold text-white">{svc.name}</p>
+                                                            <p className="text-[10px] text-neutral-600 truncate">{hasR2 ? svc.image_url.split('/').pop() : 'No R2 image'}</p>
+                                                            {hasR2 && (
+                                                                <button
+                                                                    onClick={() => deleteServiceImage(svc.id, svc.name)}
+                                                                    className="w-full flex items-center justify-center gap-1.5 text-xs font-bold py-2 rounded-lg bg-red-900/60 hover:bg-red-700 text-red-400 hover:text-white transition-all"
+                                                                >
+                                                                    <Trash2 className="w-3.5 h-3.5" /> Delete from R2
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         )}
 

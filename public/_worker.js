@@ -405,6 +405,48 @@ export default {
             }
         }
 
+        // ── GET /api/admin/service-images — all services with their homepage image
+        if (url.pathname === "/api/admin/service-images" && request.method === "GET") {
+            if (!(await checkAdminAuth(request))) {
+                return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
+            }
+            try {
+                const { results } = await env.DB.prepare(
+                    "SELECT id, name, slug, image_url FROM services ORDER BY name ASC"
+                ).all();
+                return new Response(JSON.stringify(results), { status: 200, headers: corsHeaders });
+            } catch (e) {
+                return new Response(JSON.stringify({ error: e.message }), { status: 500, headers: corsHeaders });
+            }
+        }
+
+        // ── DELETE /api/admin/service-images — remove R2 file + clear image_url on service
+        if (url.pathname === "/api/admin/service-images" && request.method === "DELETE") {
+            if (!(await checkAdminAuth(request))) {
+                return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
+            }
+            try {
+                const { serviceId } = await request.json();
+                // Fetch current image_url to extract R2 key
+                const { results } = await env.DB.prepare(
+                    "SELECT image_url FROM services WHERE id = ?"
+                ).bind(serviceId).all();
+                if (results.length > 0 && results[0].image_url && results[0].image_url.startsWith('https://images.fhhairbraiding.com/')) {
+                    const r2Key = results[0].image_url.split('/').pop();
+                    if (r2Key) {
+                        try { await env.BUCKET.delete(r2Key); } catch (_) { /* best-effort R2 delete */ }
+                    }
+                }
+                // Clear the image_url so the service falls back to a local placeholder
+                await env.DB.prepare("UPDATE services SET image_url = NULL WHERE id = ?").bind(serviceId).run();
+                // Also remove matching entry from gallery_images if it exists
+                await env.DB.prepare("DELETE FROM gallery_images WHERE service_id = ? AND section = 'signature'").bind(serviceId).run();
+                return new Response(JSON.stringify({ success: true }), { status: 200, headers: corsHeaders });
+            } catch (e) {
+                return new Response(JSON.stringify({ error: e.message }), { status: 500, headers: corsHeaders });
+            }
+        }
+
         // ── GET /api/bookings (admin) ─────────────────────────────────────────
         if (url.pathname === "/api/bookings" && request.method === "GET") {
             const adminKey = request.headers.get("X-Admin-Key");
