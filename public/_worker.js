@@ -447,6 +447,50 @@ export default {
             }
         }
 
+        // ── GET /api/resend-test ────────────────────────────────────────────
+        if (url.pathname === "/api/resend-test" && request.method === "GET") {
+            const to = url.searchParams.get("to");
+            if (!to || !to.includes("@")) {
+                return new Response(JSON.stringify({ error: "Missing or invalid 'to' email parameter." }), { status: 400, headers: corsHeaders });
+            }
+
+            if (!env.RESEND_API_KEY) {
+                return new Response(JSON.stringify({ error: "RESEND_API_KEY is not configured in the environment." }), { status: 500, headers: corsHeaders });
+            }
+
+            try {
+                const res = await fetch("https://api.resend.com/emails", {
+                    method: "POST",
+                    headers: {
+                        "Authorization": `Bearer ${env.RESEND_API_KEY}`,
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        from: "test@fhhairbraiding.com",
+                        to: [to],
+                        subject: "🚀 Resend Test Confirmation",
+                        html: `
+                            <div style="font-family:sans-serif;max-width:600px;margin:auto;padding:24px;background:#111;color:#fff;border-radius:12px">
+                                <h2 style="color:#f59e0b">✅ Resend is Working!</h2>
+                                <p>This is a test email sent from the <b>F&H Hair Braiding</b> worker to verify your Resend integration.</p>
+                                <hr style="border-color:#333;margin:16px 0"/>
+                                <p style="color:#aaa">If you received this, the <code>RESEND_API_KEY</code> is correctly configured and the API is reachable.</p>
+                                <p style="color:#666;font-size:12px">Timestamp: ${new Date().toISOString()}</p>
+                            </div>`
+                    })
+                });
+
+                const data = await res.json();
+                return new Response(JSON.stringify({
+                    success: res.ok,
+                    resendResponse: data,
+                    message: res.ok ? "Test email sent successfully!" : "Failed to send test email."
+                }), { status: res.status, headers: corsHeaders });
+            } catch (e) {
+                return new Response(JSON.stringify({ error: e.message }), { status: 500, headers: corsHeaders });
+            }
+        }
+
         // ── GET /api/bookings (admin) ─────────────────────────────────────────
         if (url.pathname === "/api/bookings" && request.method === "GET") {
             const adminKey = request.headers.get("X-Admin-Key");

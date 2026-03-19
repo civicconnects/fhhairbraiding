@@ -48,3 +48,11 @@
 
 - CALENDAR: Verify the Google Calendar API connection returns a 200 status.
 - SYNC: Ensure 'Busy' slots on the owner's calendar are programmatically disabled in the UI.
+
+- CALENDAR: Verify Google API keys are stored securely in Cloudflare Secrets (Vault).
+- SOCIAL: Test that Instagram and TikTok API endpoints return valid data before rendering components.
+- DATA: Verify address and phone number are consistent across Footer, Contact Page, and Schema markup.
+
+## PHASE 4: CONSTRUCT (Component Standards)
+- GALLERY: Implement a 'Signature Crowns' feed that pulls latest work from Instagram.
+- BOOKING: Build a 'Live Availability' widget synced to Google Calendar.
