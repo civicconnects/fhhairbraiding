@@ -35,6 +35,36 @@ export async function onRequestPost(context: any) {
             "INSERT INTO bookings (customer_name, phone, email, service_type, date, time, status) VALUES (?, ?, ?, ?, ?, ?, 'pending')"
         ).bind(clientName, clientPhone, clientEmail || '', serviceName, date, time).run();
 
+        // ── Send Email Notification via AgentMail ───────────────────────────
+        if (env.AGENTMAIL_API_KEY) {
+            try {
+                const emailHtml = `
+                    <h2>New Booking Request</h2>
+                    <p><strong>Name:</strong> ${clientName}</p>
+                    <p><strong>Phone:</strong> ${clientPhone}</p>
+                    <p><strong>Email:</strong> ${clientEmail || 'N/A'}</p>
+                    <p><strong>Service:</strong> ${serviceName}</p>
+                    <p><strong>Date & Time:</strong> ${date} at ${time}</p>
+                `;
+                
+                await fetch('https://api.agentmail.to/v0/inboxes/sales-team-haddy%40agentmail.to/messages/send', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${env.AGENTMAIL_API_KEY}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        to: ['hbittaye06@gmail.com'], // Or however the admin prefers to receive them
+                        subject: `New Booking Request: ${clientName} - ${serviceName}`,
+                        html: emailHtml,
+                        text: `New Booking Request\n\nName: ${clientName}\nPhone: ${clientPhone}\nEmail: ${clientEmail || 'N/A'}\nService: ${serviceName}\nDate & Time: ${date} at ${time}`
+                    })
+                });
+            } catch (error) {
+                console.error("Failed to send AgentMail notification:", error);
+            }
+        }
+
         // ── Optional: Google Calendar event (skip gracefully if keys missing) ──
         if (env.GOOGLE_CALENDAR_ID && env.GOOGLE_SERVICE_ACCOUNT_JSON) {
             try {
