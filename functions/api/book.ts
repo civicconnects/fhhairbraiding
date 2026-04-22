@@ -103,8 +103,7 @@ export async function onRequestPost(context: any) {
 
         return new Response(JSON.stringify({
             status: "success",
-            message: "Booking request received! Monica will confirm shortly. (v2.0)",
-            debug_email: { status: emailStatus, error: emailError }
+            message: "Booking request received! Monica will confirm shortly."
         }), { headers: { 'Content-Type': 'application/json' } });
 
     } catch (e: any) {

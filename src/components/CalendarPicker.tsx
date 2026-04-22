@@ -242,7 +242,19 @@ export default function CalendarPicker() {
                                             💬 Text Us to Book: (502) 644-2754
                                         </a>
                                     ) : (
-                                        <p className="text-red-400 text-sm font-bold">{bookingError}</p>
+                                        <div className="bg-red-500/10 border border-red-500/20 p-6 rounded-2xl">
+                                            <p className="text-red-400 font-bold mb-4">{bookingError}</p>
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setBookingError('');
+                                                    setStep(1);
+                                                }}
+                                                className="w-full bg-white text-black font-bold py-3 px-6 rounded-xl hover:bg-amber-500 transition-colors"
+                                            >
+                                                Pick Another Time
+                                            </button>
+                                        </div>
                                     )}
                                 </div>
                             )}
