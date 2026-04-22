@@ -66,7 +66,7 @@ export async function onRequestPost(context: any) {
                 if (!response.ok) {
                     const text = await response.text();
                     emailStatus = "failed";
-                    emailError = \`HTTP \${response.status}: \${text}\`;
+                    emailError = `HTTP ${response.status}: ${text}`;
                     console.error("AgentMail API Error:", emailError);
                 } else {
                     emailStatus = "success";
