@@ -36,6 +36,8 @@ export async function onRequestPost(context: any) {
         ).bind(clientName, clientPhone, clientEmail || '', serviceName, date, time).run();
 
         // ── Send Email Notification via AgentMail ───────────────────────────
+        let emailStatus = "not_attempted";
+        let emailError = null;
         if (env.AGENTMAIL_API_KEY) {
             try {
                 const emailHtml = `
@@ -47,7 +49,7 @@ export async function onRequestPost(context: any) {
                     <p><strong>Date & Time:</strong> ${date} at ${time}</p>
                 `;
                 
-                await fetch('https://api.agentmail.to/v0/inboxes/sales-team-haddy%40agentmail.to/messages/send', {
+                const response = await fetch('https://api.agentmail.to/v0/inboxes/sales-team-haddy%40agentmail.to/messages/send', {
                     method: 'POST',
                     headers: {
                         'Authorization': `Bearer ${env.AGENTMAIL_API_KEY}`,
@@ -60,9 +62,22 @@ export async function onRequestPost(context: any) {
                         text: `New Booking Request\n\nName: ${clientName}\nPhone: ${clientPhone}\nEmail: ${clientEmail || 'N/A'}\nService: ${serviceName}\nDate & Time: ${date} at ${time}`
                     })
                 });
-            } catch (error) {
+
+                if (!response.ok) {
+                    const text = await response.text();
+                    emailStatus = "failed";
+                    emailError = \`HTTP \${response.status}: \${text}\`;
+                    console.error("AgentMail API Error:", emailError);
+                } else {
+                    emailStatus = "success";
+                }
+            } catch (error: any) {
+                emailStatus = "failed";
+                emailError = error.message;
                 console.error("Failed to send AgentMail notification:", error);
             }
+        } else {
+            emailStatus = "missing_api_key";
         }
 
         // ── Optional: Google Calendar event (skip gracefully if keys missing) ──
@@ -88,7 +103,8 @@ export async function onRequestPost(context: any) {
 
         return new Response(JSON.stringify({
             status: "success",
-            message: "Booking request received! Monica will confirm shortly."
+            message: "Booking request received! Monica will confirm shortly.",
+            debug_email: { status: emailStatus, error: emailError }
         }), { headers: { 'Content-Type': 'application/json' } });
 
     } catch (e: any) {
